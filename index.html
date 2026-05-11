@@ -1461,7 +1461,7 @@ function changeExerciseType(idx,type){
 }
 
 function addGymExercise(){
-  gymSession.push({name:'',type:'machine',sets:[{reps:'',weight:''}],duration_min:''});
+  gymSession.push({name:'',type:'machine',sets:[],duration_min:''});
   renderGymBuilder();
   setTimeout(()=>{const inputs=document.querySelectorAll('.ex-name-input');if(inputs.length)inputs[inputs.length-1].focus();},50);
 }
@@ -1469,6 +1469,14 @@ function addGymExercise(){
 function removeGymExercise(idx){gymSession.splice(idx,1);renderGymBuilder();}
 function addGymSet(idx){gymSession[idx].sets.push({reps:'',weight:''});renderGymBuilder();}
 function removeGymSet(ei,si){gymSession[ei].sets.splice(si,1);renderGymBuilder();}
+
+function bulkAddSets(idx){
+  const n=parseInt(document.getElementById(`qs-n-${idx}`).value)||1;
+  const reps=document.getElementById(`qs-r-${idx}`).value;
+  const weight=document.getElementById(`qs-w-${idx}`).value;
+  for(let i=0;i<Math.min(n,20);i++)gymSession[idx].sets.push({reps,weight});
+  renderGymBuilder();
+}
 
 function renderGymBuilder(){
   const el=document.getElementById('gym-exercises');
@@ -1487,6 +1495,16 @@ function renderGymBuilder(){
 
     let bodyHtml='';
     if(ex.type==='machine'){
+      const quickAdd=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--bg);padding:8px;border-radius:8px;margin-bottom:${ex.sets.length?'10px':'0'}">
+        <span style="font-size:11px;color:var(--text-soft);white-space:nowrap">Adicionar</span>
+        <input type="number" class="set-inp" id="qs-n-${idx}" value="3" min="1" max="20" style="width:44px" title="Nº séries">
+        <span class="set-sep" style="white-space:nowrap;font-size:11px">séries ×</span>
+        <input type="number" class="set-inp" id="qs-r-${idx}" placeholder="Reps" min="1" style="width:54px" title="Repetições">
+        <span class="set-sep">×</span>
+        <input type="number" class="set-inp" id="qs-w-${idx}" placeholder="kg" step="0.5" min="0" style="width:60px" title="Peso">
+        <span class="set-sep" style="font-size:11px">kg</span>
+        <button class="btn btn-dark" style="padding:6px 14px;width:auto;font-size:12px" onclick="bulkAddSets(${idx})">✓ Adicionar</button>
+      </div>`;
       const setRows=ex.sets.map((s,si)=>`
         <div class="set-row">
           <span class="set-num">${si+1}</span>
@@ -1497,7 +1515,8 @@ function renderGymBuilder(){
             onchange="gymSession[${idx}].sets[${si}].weight=this.value">
           <button class="icon-btn" onclick="removeGymSet(${idx},${si})">✕</button>
         </div>`).join('');
-      bodyHtml=setRows+`<button class="btn-outline" style="width:auto;padding:6px 14px;font-size:11px;margin-top:4px" onclick="addGymSet(${idx})">+ Série</button>`;
+      const addBtn=ex.sets.length?`<button class="btn-outline" style="width:auto;padding:6px 14px;font-size:11px;margin-top:6px" onclick="addGymSet(${idx})">+ Série individual</button>`:'';
+      bodyHtml=quickAdd+setRows+addBtn;
     }else{
       bodyHtml=`<div style="display:flex;align-items:center;gap:8px">
         <input type="number" class="set-inp" style="max-width:80px" value="${ex.duration_min||''}" placeholder="min" min="1"
