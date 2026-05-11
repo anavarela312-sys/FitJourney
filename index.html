@@ -6,6 +6,7 @@
 <title>FitJourney — Ana & João</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --ana:#E8A598;--ana-deep:#C4736A;--ana-light:#F7E8E6;
@@ -459,6 +460,7 @@ let workoutCache={ana:[],joao:[]};
 let gymSession=[];
 let currentWorkoutType='gym';
 let expandedWorkouts=new Set();
+let weightChartInst=null;
 let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
@@ -1106,6 +1108,7 @@ function renderPeso(){
   const weights=cache[currentUser].weights;
   const tgt=TARGETS[currentUser];
   const color=currentUser==='ana'?'var(--ana)':'var(--joao)';
+  const colorHex=currentUser==='ana'?'#E8A598':'#7BA7C2';
   if(!weights.length){document.getElementById('peso-display').innerHTML=`<div class="card"><div class="empty-state"><div class="emoji">⚖️</div>Sem pesagens</div></div>`;return;}
   const latest=weights[weights.length-1];
   const prev=weights.length>1?weights[weights.length-2]:null;
@@ -1115,6 +1118,29 @@ function renderPeso(){
   const pct=Math.min(100,Math.max(0,Math.round((tgt.startWeight-latest.weight)/(tgt.startWeight-tgt.goalWeight)*100)));
   const deltaHtml=delta!==null?`<div class="weight-delta" style="color:${parseFloat(delta)<=0?'var(--green)':'var(--red)'}">
     ${parseFloat(delta)<=0?'▼':'▲'} ${Math.abs(delta)} kg vs anterior</div>`:'';
+
+  // Comparisons
+  const now=new Date();
+  const d30=new Date(now-30*24*3600*1000).toISOString().split('T')[0];
+  const wMonth=weights.slice(0,-1).reduce((best,w)=>{
+    if(!best)return w;
+    return Math.abs(new Date(w.date)-new Date(d30))<Math.abs(new Date(best.date)-new Date(d30))?w:best;
+  },null);
+  const daysDiff=weights.length>1?(new Date(latest.date)-new Date(weights[0].date))/(86400000):0;
+  const weeklyRate=daysDiff>6?((latest.weight-weights[0].weight)/daysDiff*7).toFixed(2):null;
+
+  const compItems=[];
+  if(prev){const d=(latest.weight-prev.weight).toFixed(1);compItems.push({label:'vs Anterior',sub:formatDate(prev.date),val:(d>0?'+':'')+d+'kg',good:parseFloat(d)<=0});}
+  if(wMonth&&wMonth.date!==latest.date){const d=(latest.weight-wMonth.weight).toFixed(1);compItems.push({label:'vs 1 mês',sub:formatDate(wMonth.date),val:(d>0?'+':'')+d+'kg',good:parseFloat(d)<=0});}
+  {const d=(latest.weight-tgt.startWeight).toFixed(1);compItems.push({label:'vs Início',sub:tgt.startWeight+'kg',val:(d>0?'+':'')+d+'kg',good:parseFloat(d)<=0});}
+  if(weeklyRate!==null)compItems.push({label:'Ritmo médio',sub:'por semana',val:(weeklyRate>0?'+':'')+weeklyRate+'kg',good:parseFloat(weeklyRate)<=0});
+
+  const compHtml=compItems.map(c=>`<div class="metric-item">
+    <div class="metric-name">${c.label}<br><span style="font-size:9px">${c.sub}</span></div>
+    <div class="metric-val" style="font-size:16px;color:${c.good?'var(--green)':'var(--red)'}">${c.val}</div>
+  </div>`).join('');
+
+  const hasFat=weights.some(w=>w.fat_pct);
   const histRows=[...weights].reverse().slice(0,10).map(w=>`
     <div class="dt-weights dt-row">
       <div class="dt-muted">${formatDate(w.date)}</div>
@@ -1123,8 +1149,8 @@ function renderPeso(){
       <div class="dt-muted dt-ra">${w.muscle?w.muscle+'kg':'—'}</div>
       <div class="dt-muted">${[w.bmi?'IMC '+w.bmi:'',w.water?w.water+'%H₂O':''].filter(Boolean).join(' · ')||'—'}</div>
       <div class="action-btns">
-        <button data-action="edit-weight" data-id="${eid(w.id)}" class="icon-btn" title="Editar">✏️</button>
-        <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn" title="Apagar">🗑️</button>
+        <button data-action="edit-weight" data-id="${eid(w.id)}" class="icon-btn">✏️</button>
+        <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn">🗑️</button>
       </div>
     </div>`).join('');
   const metricsHtml=latest.fat_pct?`<div class="card"><div class="card-title">📊 Composição corporal</div><div class="metrics-grid">
@@ -1136,8 +1162,10 @@ function renderPeso(){
     ${latest.visceral?`<div class="metric-item"><div class="metric-name">Gordura visceral</div><div class="metric-val">${latest.visceral}</div></div>`:''}
     ${latest.body_age?`<div class="metric-item"><div class="metric-name">Idade corporal</div><div class="metric-val">${latest.body_age}<span>anos</span></div></div>`:''}
   </div></div>`:'';
+
   document.getElementById('peso-display').innerHTML=`
-    <div class="card"><div class="weight-display"><div class="weight-big">${latest.weight}<span>kg</span></div>${deltaHtml}</div>
+    <div class="card">
+      <div class="weight-display"><div class="weight-big">${latest.weight}<span>kg</span></div>${deltaHtml}</div>
       <div style="margin-top:16px">
         <div class="progress-header"><span>Início: ${tgt.startWeight}kg</span>
           <span style="font-family:'Syne',sans-serif;font-weight:700;color:${color}">${pct}% da meta</span>
@@ -1147,7 +1175,22 @@ function renderPeso(){
           <span>Perdido: <strong style="color:var(--green)">${lost>0?lost:0}kg</strong></span>
           <span>Falta: <strong>${toGo>0?toGo:0}kg</strong></span></div>
       </div>
-    </div>${metricsHtml}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin:0">📈 Evolução do peso</div>
+        ${hasFat?`<button id="fat-toggle-btn" onclick="toggleFatLine()"
+          style="border:none;cursor:pointer;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--bg);color:var(--text-soft)">Gordura%</button>`:''}
+      </div>
+      <canvas id="weight-chart" height="160"></canvas>
+    </div>
+
+    <div class="card"><div class="card-title">📊 Comparações</div>
+      <div class="metrics-grid">${compHtml}</div>
+    </div>
+
+    ${metricsHtml}
     <div class="card"><div class="card-title">Histórico de pesagens</div>
       <div class="dt-wrap">
         <div class="dt-weights dt-head">
@@ -1155,6 +1198,54 @@ function renderPeso(){
         </div>${histRows}
       </div>
     </div>`;
+
+  const chartLabels=weights.map(w=>formatDate(w.date));
+  const chartW=weights.map(w=>w.weight);
+  const chartF=weights.map(w=>w.fat_pct||null);
+  setTimeout(()=>initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat),0);
+}
+
+function initWeightChart(labels,wData,fData,color,hasFat){
+  const canvas=document.getElementById('weight-chart');
+  if(!canvas)return;
+  if(weightChartInst){weightChartInst.destroy();weightChartInst=null;}
+  const pts=wData.length>20?2:4;
+  const datasets=[{
+    label:'Peso (kg)',data:wData,borderColor:color,
+    backgroundColor:color+'28',tension:0.35,fill:true,
+    pointRadius:pts,pointHoverRadius:6,borderWidth:2
+  }];
+  if(hasFat)datasets.push({
+    label:'Gordura (%)',data:fData,borderColor:'#E8A53A',
+    backgroundColor:'transparent',tension:0.35,fill:false,
+    pointRadius:pts,borderWidth:2,hidden:true,yAxisID:'fat'
+  });
+  weightChartInst=new Chart(canvas,{
+    type:'line',data:{labels,datasets},
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(26,26,26,0.92)',padding:10,
+        titleFont:{size:11},bodyFont:{size:11}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxTicksLimit:7,maxRotation:0}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'kg'}},
+        fat:{position:'right',display:false,grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function toggleFatLine(){
+  if(!weightChartInst)return;
+  const ds=weightChartInst.data.datasets[1];if(!ds)return;
+  ds.hidden=!ds.hidden;
+  weightChartInst.options.scales.fat.display=!ds.hidden;
+  weightChartInst.update();
+  const btn=document.getElementById('fat-toggle-btn');
+  if(btn){btn.style.background=ds.hidden?'var(--bg)':'#E8A53A';btn.style.color=ds.hidden?'var(--text-soft)':'#fff';}
 }
 
 // ── RENDER HISTÓRICO ──
