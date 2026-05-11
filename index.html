@@ -461,6 +461,8 @@ let gymSession=[];
 let currentWorkoutType='gym';
 let expandedWorkouts=new Set();
 let weightChartInst=null;
+let bodyChartInst=null;
+let activeBodyMetric='fat_pct';
 let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
@@ -1190,6 +1192,7 @@ function renderPeso(){
       <div class="metrics-grid">${compHtml}</div>
     </div>
 
+    ${buildBodyChartCard(weights)}
     ${metricsHtml}
     <div class="card"><div class="card-title">Histórico de pesagens</div>
       <div class="dt-wrap">
@@ -1202,7 +1205,7 @@ function renderPeso(){
   const chartLabels=weights.map(w=>formatDate(w.date));
   const chartW=weights.map(w=>w.weight);
   const chartF=weights.map(w=>w.fat_pct||null);
-  setTimeout(()=>initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat),0);
+  setTimeout(()=>{initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat);initBodyChart(activeBodyMetric);},0);
 }
 
 function initWeightChart(labels,wData,fData,color,hasFat){
@@ -1246,6 +1249,100 @@ function toggleFatLine(){
   weightChartInst.update();
   const btn=document.getElementById('fat-toggle-btn');
   if(btn){btn.style.background=ds.hidden?'var(--bg)':'#E8A53A';btn.style.color=ds.hidden?'var(--text-soft)':'#fff';}
+}
+
+const BODY_METRICS=[
+  {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down'},
+  {key:'muscle',   label:'Músculo',    unit:'kg', color:'#5A9E6F', good:'up'},
+  {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down'},
+  {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up'},
+  {key:'bmi',      label:'IMC',        unit:'',   color:'#9B7BC2', good:'down'},
+];
+
+function buildBodyChartCard(weights){
+  const available=BODY_METRICS.filter(m=>weights.some(w=>w[m.key]));
+  if(!available.length)return'';
+  if(!available.find(m=>m.key===activeBodyMetric))activeBodyMetric=available[0].key;
+  const btns=available.map(m=>`<button class="body-metric-btn"
+    data-metric="${m.key}" onclick="setBodyMetric('${m.key}')"
+    style="border:none;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;border-radius:99px;transition:all 0.15s;
+      background:${m.key===activeBodyMetric?m.color:'var(--bg)'};
+      color:${m.key===activeBodyMetric?'#fff':'var(--text-soft)'}">${m.label}</button>`).join('');
+  return`<div class="card">
+    <div class="card-title">💪 Evolução — composição corporal</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${btns}</div>
+    <canvas id="body-chart" height="160"></canvas>
+    <div id="body-chart-stats" style="margin-top:12px"></div>
+  </div>`;
+}
+
+function setBodyMetric(metric){
+  activeBodyMetric=metric;
+  document.querySelectorAll('.body-metric-btn').forEach(btn=>{
+    const m=BODY_METRICS.find(x=>x.key===btn.dataset.metric);
+    const active=btn.dataset.metric===metric;
+    btn.style.background=active?(m?m.color:'var(--text)'):'var(--bg)';
+    btn.style.color=active?'#fff':'var(--text-soft)';
+  });
+  initBodyChart(metric);
+}
+
+function initBodyChart(metric){
+  const canvas=document.getElementById('body-chart');
+  if(!canvas)return;
+  if(bodyChartInst){bodyChartInst.destroy();bodyChartInst=null;}
+  const m=BODY_METRICS.find(x=>x.key===metric);
+  if(!m)return;
+  const weights=cache[currentUser].weights;
+  const pts=weights.filter(w=>w[metric]);
+  if(!pts.length)return;
+  const labels=pts.map(w=>formatDate(w.date));
+  const data=pts.map(w=>w[metric]);
+  const minV=Math.min(...data);
+  const maxV=Math.max(...data);
+  const pad=(maxV-minV)*0.15||0.5;
+  bodyChartInst=new Chart(canvas,{
+    type:'bar',
+    data:{labels,datasets:[{
+      label:m.label,data,
+      backgroundColor:m.color+'99',borderColor:m.color,
+      borderWidth:2,borderRadius:6,
+    }]},
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(26,26,26,0.92)',padding:10,
+        titleFont:{size:11},bodyFont:{size:11},
+        callbacks:{label:ctx=>`${ctx.raw}${m.unit}`}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxRotation:0}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},
+          min:Math.max(0,minV-pad),max:maxV+pad,
+          ticks:{font:{size:10},callback:v=>v+m.unit}}
+      }
+    }
+  });
+  // Stats below chart
+  const statsEl=document.getElementById('body-chart-stats');
+  if(!statsEl)return;
+  const latest=pts[pts.length-1];
+  const prev=pts.length>1?pts[pts.length-2]:null;
+  const first=pts[0];
+  const goodDown=m.good==='down';
+  function deltaChip(label,from,to){
+    const d=round1(to-from);
+    const good=goodDown?d<=0:d>=0;
+    return`<div class="metric-item">
+      <div class="metric-name">${label}</div>
+      <div class="metric-val" style="font-size:15px;color:${good?'var(--green)':'var(--red)'}">${d>0?'+':''}${d}${m.unit}</div>
+    </div>`;
+  }
+  const chips=[];
+  if(prev)chips.push(deltaChip('vs Anterior',prev[metric],latest[metric]));
+  chips.push(deltaChip('vs Início',first[metric],latest[metric]));
+  chips.push(`<div class="metric-item"><div class="metric-name">Atual</div><div class="metric-val" style="font-size:15px">${latest[metric]}${m.unit}</div></div>`);
+  statsEl.innerHTML=`<div class="metrics-grid">${chips.join('')}</div>`;
 }
 
 // ── RENDER HISTÓRICO ──
