@@ -187,6 +187,48 @@
   .wk-ex-detail{padding:6px 0 0;}
   .wk-ex-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;}
   .wk-ex-row:last-child{border-bottom:none;}
+
+  /* ── Mobile ── */
+  @media(max-width:520px){
+    .main{padding:10px;}
+    .card{padding:14px 12px;}
+    .tabs{padding:0 4px;gap:0;}
+    .tab{padding:11px 9px;font-size:11px;}
+    /* Modal como bottom sheet */
+    .modal-overlay{padding:0;align-items:flex-end;}
+    .modal-box{margin:0;border-radius:var(--radius) var(--radius) 0 0;max-height:92vh;overflow-y:auto;width:100%;}
+    /* Formulários */
+    .form-row{grid-template-columns:1fr;}
+    .form-input{font-size:15px;}
+    /* Kcal circle menor */
+    .kcal-circle{width:74px;height:74px;}
+    .kcal-circle svg{width:74px;height:74px;}
+    .kcal-circle-text .big{font-size:14px;}
+    .kcal-info h3{font-size:15px;}
+    /* Peso */
+    .weight-big{font-size:44px;}
+    /* Conquistas 2 colunas em vez de 3 */
+    .achievements-grid{grid-template-columns:1fr 1fr;}
+    /* Duelo */
+    .vs-row{gap:6px;}
+    /* Gym builder — nome em linha própria */
+    .exercise-card-hd{flex-wrap:wrap;}
+    .ex-name-input{width:100%;order:-1;flex:none;}
+    .ex-type-select{flex:1;}
+    /* Sets */
+    .set-inp{font-size:12px;padding:6px 4px;}
+    .set-row{gap:4px;}
+    /* Buttons */
+    .icon-btn{padding:7px 6px;min-width:30px;min-height:30px;}
+    .user-btn{font-size:12px;padding:10px 6px;}
+    /* Tabelas */
+    .dt-muted{font-size:10px;}
+    .dt-bold{font-size:12px;}
+    /* Basket total */
+    .basket-total-vals{font-size:11px;}
+    /* Food dropdown full width on mobile */
+    .food-dropdown{position:fixed;left:10px;right:10px;top:auto;}
+  }
 </style>
 </head>
 <body>
@@ -503,6 +545,7 @@ document.addEventListener('click',function(e){
     mealBasket.splice(parseInt(id),1);
     renderBasket();
   }
+  if(action==='delete-workout') confirmDeleteWorkout(id);
   if(action==='toggle-day'){
     if(expandedDays.has(date))expandedDays.delete(date);
     else expandedDays.add(date);
@@ -1043,7 +1086,7 @@ function updateAddBtn(){
   btn.textContent=currentUser==='ana'?'💗 Guardar (Ana)':'💙 Guardar (João)';
 }
 
-function renderAll(){renderHoje();renderPeso();renderHistorico();renderConquistas();renderDuelo();updateAddBtn();}
+function renderAll(){renderHoje();renderPeso();renderHistorico();renderConquistas();renderDuelo();renderTreino();updateAddBtn();}
 
 // ── RENDER HOJE ──
 function mealRowHtml(m,date){
@@ -1770,6 +1813,16 @@ async function saveWalkWorkout(){
   setSyncStatus('ok');showToast('🚶 Caminhada registada!');renderTreino();
 }
 
+async function confirmDeleteWorkout(id){
+  if(!confirm('Apagar este treino?'))return;
+  setSyncStatus('loading');
+  const{error}=await supa.from('workout_sessions').delete().eq('id',id);
+  if(error){setSyncStatus('error');showToast('❌ Erro ao apagar');return;}
+  workoutCache[currentUser]=workoutCache[currentUser].filter(s=>s.id!==id);
+  expandedWorkouts.delete(id);
+  setSyncStatus('ok');showToast('🗑️ Treino removido');renderTreino();
+}
+
 function toggleWorkout(id){
   if(expandedWorkouts.has(id))expandedWorkouts.delete(id);
   else expandedWorkouts.add(id);
@@ -1818,9 +1871,10 @@ function renderTreino(){
           <span style="font-size:12px;color:var(--text-soft)">${formatDate(s.date)}</span>
           ${summary}
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:6px">
           <span class="wk-badge ${isGym?'wk-badge-gym':'wk-badge-walk'}">${isGym?'🏋️ Ginásio':'🚶 Caminhada'}</span>
           <span style="color:var(--text-soft);font-size:12px">${expanded?'▲':'▼'}</span>
+          <button data-action="delete-workout" data-id="${s.id}" class="icon-btn" title="Apagar">🗑️</button>
         </div>
       </div>
       ${detail}
