@@ -621,6 +621,8 @@ function openQtyModal(food){
       Guardar na minha base de alimentos
     </label>`:''}
     <button class="btn btn-dark" onclick="confirmQty()">Adicionar à refeição</button>`;
+  const defaultQty=food.default_serving_g||100;
+  document.getElementById('qty-input').value=defaultQty;
   document.getElementById('qty-modal').classList.add('show');
   updateQtyPreview();
   document.getElementById('qty-input').focus();
@@ -825,11 +827,15 @@ function renderFoodForm(food){
       <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label>
         <input type="number" class="form-input" id="ff-prot" value="${food.protein_per_100g||''}" placeholder="0"></div>
     </div>
-    <div class="form-row" style="margin-bottom:16px">
+    <div class="form-row" style="margin-bottom:12px">
       <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label>
         <input type="number" class="form-input" id="ff-fat" value="${food.fat_per_100g||''}" placeholder="0"></div>
       <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label>
         <input type="number" class="form-input" id="ff-carbs" value="${food.carbs_per_100g||''}" placeholder="0"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dose habitual (g) <span style="font-weight:400;color:var(--text-soft)">— aparece por defeito ao selecionar</span></label>
+      <input type="number" class="form-input" id="ff-serving" value="${food.default_serving_g||100}" placeholder="100" min="1">
     </div>
     <button class="btn btn-dark" onclick="saveFoodForm()">Guardar alimento</button>`;
 }
@@ -845,7 +851,8 @@ async function saveFoodForm(){
     kcal_per_100g:kcal,
     protein_per_100g:parseFloat(document.getElementById('ff-prot').value)||0,
     fat_per_100g:parseFloat(document.getElementById('ff-fat').value)||0,
-    carbs_per_100g:parseFloat(document.getElementById('ff-carbs').value)||0
+    carbs_per_100g:parseFloat(document.getElementById('ff-carbs').value)||0,
+    default_serving_g:parseFloat(document.getElementById('ff-serving').value)||100
   };
   setSyncStatus('loading');
   if(editingFoodId){
