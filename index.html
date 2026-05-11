@@ -55,6 +55,9 @@
   .btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
   .btn:disabled{opacity:0.6;cursor:not-allowed;}
   .btn-dark{background:var(--text);color:#fff;}
+  .btn-outline{background:none;border:2px solid var(--border);color:var(--text-soft);font-family:'Syne',sans-serif;font-weight:600;font-size:12px;border-radius:10px;padding:10px;cursor:pointer;width:100%;transition:all 0.2s;}
+  .btn-outline:hover{border-color:var(--text);color:var(--text);}
+  .btn-sm{padding:7px 12px;font-size:11px;width:auto;}
   .btn-ana{background:var(--ana);color:#fff;}
   .btn-ana:hover{background:var(--ana-deep);}
   .btn-joao{background:var(--joao);color:#fff;}
@@ -101,8 +104,8 @@
   .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg)}}
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;padding:20px;overflow-y:auto;display:none;}
-  .modal-overlay.show{display:block;}
-  .modal-box{background:var(--card);border-radius:var(--radius);padding:20px;max-width:480px;margin:40px auto;box-shadow:0 8px 40px rgba(0,0,0,0.2);}
+  .modal-overlay.show{display:flex;align-items:flex-start;justify-content:center;}
+  .modal-box{background:var(--card);border-radius:var(--radius);padding:20px;width:100%;max-width:480px;margin:40px auto;box-shadow:0 8px 40px rgba(0,0,0,0.2);}
   .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
   .modal-close{background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-soft);line-height:1;padding:2px 6px;}
   .modal-close:hover{color:var(--text);}
@@ -121,6 +124,44 @@
   .dt-muted{font-size:11px;color:var(--text-soft);}
   .dt-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;}
   .dt-ra{text-align:right;}
+
+  /* ── Food search ── */
+  .food-search-wrap{position:relative;}
+  .food-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:2px solid var(--border);border-radius:12px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:none;}
+  .food-dropdown.open{display:block;}
+  .food-drop-item{padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;}
+  .food-drop-item:last-child{border-bottom:none;}
+  .food-drop-item:hover{background:var(--bg);}
+  .food-drop-name{font-size:13px;font-weight:500;}
+  .food-drop-macros{font-size:10px;color:var(--text-soft);margin-top:2px;}
+  .food-drop-empty{padding:14px 13px;font-size:13px;color:var(--text-soft);text-align:center;}
+  .food-drop-section{padding:6px 13px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);background:var(--bg);border-bottom:1px solid var(--border);}
+  .food-drop-off{border-left:3px solid var(--joao);}
+  .off-loading{padding:10px 13px;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:8px;}
+
+  /* ── Basket ── */
+  .basket-wrap{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .basket-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+  .basket-item:last-child{border-bottom:none;}
+  .basket-item-name{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .basket-item-macros{font-size:10px;color:var(--text-soft);white-space:nowrap;}
+  .basket-total{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:2px solid var(--border);}
+  .basket-total-label{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);}
+  .basket-total-vals{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+
+  /* ── Qty picker modal ── */
+  .qty-pick{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+  .qty-pick input{flex:1;}
+  .qty-unit{font-size:13px;color:var(--text-soft);white-space:nowrap;}
+
+  /* ── Foods tab ── */
+  .food-list-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .food-list-item:last-child{border-bottom:none;}
+  .food-list-name{font-size:13px;font-weight:500;flex:1;}
+  .food-list-macros{font-size:10px;color:var(--text-soft);}
+  .food-list-brand{font-size:10px;color:var(--text-soft);}
+  .section-toggle{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:4px;padding:4px 0;font-family:'DM Sans',sans-serif;}
+  .section-toggle:hover{color:var(--text);}
 </style>
 </head>
 <body>
@@ -137,42 +178,86 @@
   <button class="tab active" onclick="showTab('hoje',this)">📊 Hoje</button>
   <button class="tab" onclick="showTab('peso',this)">⚖️ Peso</button>
   <button class="tab" onclick="showTab('historico',this)">📅 Histórico</button>
+  <button class="tab" onclick="showTab('alimentos',this)">🥗 Alimentos</button>
   <button class="tab" onclick="showTab('conquistas',this)">🏆 Conquistas</button>
   <button class="tab" onclick="showTab('duelo',this)">⚔️ Duelo</button>
 </div>
 
 <div class="main">
 
+  <!-- ── HOJE ── -->
   <div id="panel-hoje" class="panel active">
     <div class="user-selector">
       <button class="user-btn ana" onclick="setUser('ana')">💗 Ana</button>
       <button class="user-btn joao" onclick="setUser('joao')">💙 João</button>
     </div>
     <div id="hoje-display"><div class="loading-screen"><div class="spinner"></div>A carregar...</div></div>
+
     <div class="card">
       <div class="card-title">➕ Registar refeição</div>
+
+      <!-- Date + type -->
       <div class="form-row" style="margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label class="form-label">Data</label><input type="date" class="form-input" id="meal-date"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Refeição</label>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="meal-date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Refeição</label>
           <select class="form-input" id="meal-type">
             <option>Pequeno-almoço</option><option>Snack manhã</option><option>Almoço</option>
             <option>Lanche tarde</option><option>Jantar</option><option>Extra</option>
           </select>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">Descrição (opcional)</label><input type="text" class="form-input" id="meal-desc" placeholder="ex: Frango com arroz"></div>
-      <div class="form-row" style="margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label class="form-label">Calorias (kcal)</label><input type="number" class="form-input" id="meal-kcal" placeholder="0"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label><input type="number" class="form-input" id="meal-prot" placeholder="0"></div>
+
+      <!-- Food search -->
+      <div class="form-group" style="position:relative">
+        <label class="form-label">Pesquisar alimento 🔍</label>
+        <div class="food-search-wrap">
+          <input type="text" class="form-input" id="food-search"
+            placeholder="ex: aveia, frango, leite..."
+            oninput="onFoodSearchInput()"
+            onblur="scheduleFoodDropdownClose()"
+            onkeydown="onFoodSearchKey(event)"
+            autocomplete="off">
+          <div class="food-dropdown" id="food-dropdown"></div>
+        </div>
       </div>
-      <div class="form-row" style="margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label><input type="number" class="form-input" id="meal-fat" placeholder="0"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label><input type="number" class="form-input" id="meal-carbs" placeholder="0"></div>
+
+      <!-- Basket -->
+      <div id="meal-basket-wrap" style="display:none">
+        <div class="basket-wrap" id="meal-basket"></div>
       </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label">Descrição / nota (opcional)</label>
+        <input type="text" class="form-input" id="meal-desc" placeholder="ex: Frango com arroz">
+      </div>
+
+      <!-- Manual toggle -->
+      <div style="margin-bottom:12px">
+        <button class="section-toggle" onclick="toggleManualFields()">
+          <span id="manual-toggle-icon">▶</span> Entrada manual de valores
+        </button>
+      </div>
+      <div id="manual-fields" style="display:none">
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group" style="margin:0"><label class="form-label">Calorias (kcal)</label><input type="number" class="form-input" id="meal-kcal" placeholder="0"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label><input type="number" class="form-input" id="meal-prot" placeholder="0"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label><input type="number" class="form-input" id="meal-fat" placeholder="0"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label><input type="number" class="form-input" id="meal-carbs" placeholder="0"></div>
+        </div>
+      </div>
+
       <button class="btn btn-ana" id="add-meal-btn" onclick="addMeal()">💗 Guardar refeição</button>
     </div>
   </div>
 
+  <!-- ── PESO ── -->
   <div id="panel-peso" class="panel">
     <div class="user-selector">
       <button class="user-btn ana" onclick="setUser('ana')">💗 Ana</button>
@@ -202,6 +287,7 @@
     </div>
   </div>
 
+  <!-- ── HISTÓRICO ── -->
   <div id="panel-historico" class="panel">
     <div class="user-selector">
       <button class="user-btn ana" onclick="setUser('ana')">💗 Ana</button>
@@ -210,6 +296,21 @@
     <div id="historico-display"><div class="loading-screen"><div class="spinner"></div>A carregar...</div></div>
   </div>
 
+  <!-- ── ALIMENTOS ── -->
+  <div id="panel-alimentos" class="panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin:0">🥗 Base de dados de alimentos</div>
+        <button class="btn btn-dark btn-sm" onclick="openAddFood()">+ Novo</button>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <input type="text" class="form-input" id="food-list-search" placeholder="Filtrar alimentos..." oninput="renderAlimentos()">
+      </div>
+      <div id="alimentos-list"><div class="loading-screen"><div class="spinner"></div>A carregar...</div></div>
+    </div>
+  </div>
+
+  <!-- ── CONQUISTAS ── -->
   <div id="panel-conquistas" class="panel">
     <div class="user-selector">
       <button class="user-btn ana" onclick="setUser('ana')">💗 Ana</button>
@@ -218,19 +319,43 @@
     <div id="conquistas-display"><div class="loading-screen"><div class="spinner"></div>A carregar...</div></div>
   </div>
 
+  <!-- ── DUELO ── -->
   <div id="panel-duelo" class="panel">
     <div id="duelo-display"><div class="loading-screen"><div class="spinner"></div>A carregar...</div></div>
   </div>
 
 </div>
 
-<div class="modal-overlay" id="edit-modal" onclick="closeEditModalOutside(event)">
+<!-- ── Edit meal / weight modal ── -->
+<div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
     <div class="modal-header">
       <div class="card-title" style="margin:0" id="edit-modal-title">Editar</div>
       <button class="modal-close" onclick="closeEditModal()">✕</button>
     </div>
     <div id="edit-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── Add / edit food modal ── -->
+<div class="modal-overlay" id="food-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="card-title" style="margin:0" id="food-modal-title">Novo alimento</div>
+      <button class="modal-close" onclick="closeFoodModal()">✕</button>
+    </div>
+    <div id="food-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── Qty picker modal ── -->
+<div class="modal-overlay" id="qty-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="card-title" style="margin:0" id="qty-modal-title">Adicionar à refeição</div>
+      <button class="modal-close" onclick="closeQtyModal()">✕</button>
+    </div>
+    <div id="qty-modal-body"></div>
   </div>
 </div>
 
@@ -248,12 +373,22 @@ const TARGETS={
 
 let currentUser='ana';
 let cache={ana:{meals:{},weights:[],streak:0,lastLog:null},joao:{meals:{},weights:[],streak:0,lastLog:null}};
-let editingMealId=null,editingMealDate=null,editingWeightId=null;
+let foodsCache=[];
+let mealBasket=[];
+let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
+let pendingFood=null;
+let foodDropdownCloseTimer=null;
+let offSearchTimer=null;
+let offResults=[];
+let offLoading=false;
+let lastSearchQuery='';
+let manualFieldsOpen=false;
 
 function today(){return new Date().toISOString().split('T')[0];}
 function formatDate(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short'});}
 function eid(id){return String(id);}
+function round1(v){return Math.round(v*10)/10;}
 
 function setSyncStatus(s){
   const dot=document.getElementById('sync-dot');
@@ -262,16 +397,22 @@ function setSyncStatus(s){
   lbl.textContent=s==='ok'?'Sincronizado':s==='loading'?'A guardar...':'Erro de ligação';
 }
 
-// ── Event delegation: todos os botões de ação passam por aqui ──────────────
+// ── Event delegation ──
 document.addEventListener('click',function(e){
   const btn=e.target.closest('[data-action]');
   if(!btn)return;
   e.stopPropagation();
-  const {action,id,date}=btn.dataset;
+  const{action,id,date}=btn.dataset;
   if(action==='edit-meal')   openEditMeal(id,date);
   if(action==='delete-meal') confirmDeleteMeal(id,date);
   if(action==='edit-weight') openEditWeight(id);
   if(action==='delete-weight') confirmDeleteWeight(id);
+  if(action==='edit-food')   openEditFood(id);
+  if(action==='delete-food') confirmDeleteFood(id);
+  if(action==='basket-remove'){
+    mealBasket.splice(parseInt(id),1);
+    renderBasket();
+  }
   if(action==='toggle-day'){
     if(expandedDays.has(date))expandedDays.delete(date);
     else expandedDays.add(date);
@@ -279,11 +420,11 @@ document.addEventListener('click',function(e){
   }
 });
 
-// ── Fechar modal ao clicar no overlay ──────────────────────────────────────
-document.getElementById('edit-modal').addEventListener('click',function(e){
-  if(e.target===this)closeEditModal();
-});
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
+document.getElementById('food-modal').addEventListener('click',function(e){if(e.target===this)closeFoodModal();});
+document.getElementById('qty-modal').addEventListener('click',function(e){if(e.target===this)closeQtyModal();});
 
+// ── Load ──
 async function loadAll(){
   setSyncStatus('loading');
   try{
@@ -300,10 +441,23 @@ async function loadAll(){
       cache[u].streak=streak?.streak||0;
       cache[u].lastLog=streak?.last_log||null;
     }
+    await loadFoods();
     setSyncStatus('ok');renderAll();
   }catch(e){
     setSyncStatus('error');showToast('⚠️ Erro ao carregar dados');renderAll();
   }
+}
+
+async function loadFoods(){
+  const{data,error}=await supa.from('foods').select('*').order('name',{ascending:true});
+  if(error){
+    if(error.code==='42P01'){
+      showToast('⚠️ Tabela "foods" não existe — ver instruções no tab Alimentos');
+    }
+    foodsCache=[];
+    return;
+  }
+  foodsCache=data||[];
 }
 
 function showTab(tab,el){
@@ -311,26 +465,269 @@ function showTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
   el.classList.add('active');
-  renderAll();
+  if(tab==='alimentos')renderAlimentos();
+  else renderAll();
 }
 
 function setUser(u){currentUser=u;renderAll();updateAddBtn();}
 
+// ── Manual fields toggle ──
+function toggleManualFields(){
+  manualFieldsOpen=!manualFieldsOpen;
+  document.getElementById('manual-fields').style.display=manualFieldsOpen?'block':'none';
+  document.getElementById('manual-toggle-icon').textContent=manualFieldsOpen?'▼':'▶';
+}
+
+// ── Food search / dropdown ──
+function onFoodSearchInput(){
+  const q=document.getElementById('food-search').value.trim();
+  lastSearchQuery=q;
+  offResults=[];
+  clearTimeout(offSearchTimer);
+
+  if(q.length<1){document.getElementById('food-dropdown').classList.remove('open');return;}
+
+  const localMatches=foodsCache.filter(f=>
+    f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+  ).slice(0,6);
+
+  if(q.length>=2){
+    offLoading=true;
+    offSearchTimer=setTimeout(()=>searchOpenFoodFacts(q),700);
+  } else {
+    offLoading=false;
+  }
+
+  renderFoodDropdown(localMatches,offResults,offLoading,q);
+}
+
+function renderFoodDropdown(localMatches,offRes,offLoad,q){
+  const dd=document.getElementById('food-dropdown');
+  let html='';
+
+  if(localMatches.length>0){
+    if(offLoad||offRes.length>0)html+=`<div class="food-drop-section">📦 Os meus alimentos</div>`;
+    html+=localMatches.map(f=>`
+      <div class="food-drop-item" onmousedown="pickFood('local','${f.id}')">
+        <div class="food-drop-name">${f.name}${f.brand?` <span style="font-weight:400;color:var(--text-soft)">· ${f.brand}</span>`:''}</div>
+        <div class="food-drop-macros">${f.kcal_per_100g} kcal · ${f.protein_per_100g}g P · ${f.fat_per_100g}g G · ${f.carbs_per_100g}g H <span style="color:var(--text-soft)">(por 100g)</span></div>
+      </div>`).join('');
+  }
+
+  if(offLoad){
+    html+=`<div class="food-drop-section" style="color:var(--joao-deep)">🌍 Open Food Facts PT</div>`;
+    html+=`<div class="off-loading"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div>A pesquisar em Portugal...</div>`;
+  } else if(offRes.length>0){
+    html+=`<div class="food-drop-section" style="color:var(--joao-deep)">🌍 Open Food Facts PT</div>`;
+    html+=offRes.map((p,i)=>`
+      <div class="food-drop-item food-drop-off" onmousedown="pickFood('off',${i})">
+        <div class="food-drop-name">${p.name}${p.brand?` <span style="font-weight:400;color:var(--text-soft)">· ${p.brand}</span>`:''}</div>
+        <div class="food-drop-macros">${p.kcal} kcal · ${p.prot}g P · ${p.fat}g G · ${p.carbs}g H <span style="color:var(--text-soft)">(por 100g)</span></div>
+      </div>`).join('');
+  }
+
+  if(!html){
+    html=`<div class="food-drop-empty">Nenhum alimento encontrado.<br><span style="font-size:11px">Adiciona-o no tab 🥗 Alimentos ou aguarda a pesquisa PT...</span></div>`;
+  }
+
+  dd.innerHTML=html;
+  dd.classList.add('open');
+}
+
+async function searchOpenFoodFacts(q){
+  if(q!==lastSearchQuery)return;
+  try{
+    const url=`https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&countries_tags_en=portugal&lc=pt&fields=product_name,brands,nutriments&page_size=6&json=1`;
+    const resp=await fetch(url);
+    if(!resp.ok)throw new Error();
+    const data=await resp.json();
+    const products=(data.products||[])
+      .filter(p=>{
+        const n=p.nutriments||{};
+        return p.product_name&&(n['energy-kcal_100g']||n['energy-kcal'])&&n['proteins_100g']!==undefined;
+      })
+      .map(p=>{
+        const n=p.nutriments;
+        return{
+          name:p.product_name,
+          brand:(p.brands||'').split(',')[0].trim(),
+          kcal:Math.round(n['energy-kcal_100g']||n['energy-kcal']||0),
+          prot:round1(n['proteins_100g']||0),
+          fat:round1(n['fat_100g']||0),
+          carbs:round1(n['carbohydrates_100g']||0)
+        };
+      });
+    if(q!==lastSearchQuery)return;
+    offResults=products;offLoading=false;
+    const localMatches=foodsCache.filter(f=>
+      f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+    ).slice(0,6);
+    renderFoodDropdown(localMatches,offResults,false,q);
+  }catch(_){
+    if(q!==lastSearchQuery)return;
+    offLoading=false;offResults=[];
+    const localMatches=foodsCache.filter(f=>
+      f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+    ).slice(0,6);
+    renderFoodDropdown(localMatches,[],false,q);
+  }
+}
+
+function scheduleFoodDropdownClose(){
+  foodDropdownCloseTimer=setTimeout(()=>{
+    document.getElementById('food-dropdown').classList.remove('open');
+  },200);
+}
+
+function onFoodSearchKey(e){
+  if(e.key==='Escape'){document.getElementById('food-dropdown').classList.remove('open');}
+}
+
+function pickFood(source,id){
+  clearTimeout(foodDropdownCloseTimer);
+  document.getElementById('food-dropdown').classList.remove('open');
+  document.getElementById('food-search').value='';
+  if(source==='local'){
+    const food=foodsCache.find(f=>f.id===id);
+    if(!food)return;
+    pendingFood={...food,source:'local'};
+  } else {
+    const off=offResults[parseInt(id)];
+    if(!off)return;
+    pendingFood={source:'off',name:off.name,brand:off.brand,kcal_per_100g:off.kcal,protein_per_100g:off.prot,fat_per_100g:off.fat,carbs_per_100g:off.carbs};
+  }
+  openQtyModal(pendingFood);
+}
+
+// ── Qty modal ──
+function openQtyModal(food){
+  const isOff=food.source==='off';
+  document.getElementById('qty-modal-title').textContent=food.name+(food.brand?` · ${food.brand}`:'');
+  document.getElementById('qty-modal-body').innerHTML=`
+    <div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      Por 100g: <strong>${food.kcal_per_100g} kcal</strong> · ${food.protein_per_100g}g P · ${food.fat_per_100g}g G · ${food.carbs_per_100g}g H
+      ${isOff?`<span style="background:#E3EFF5;color:var(--joao-deep);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600">🌍 Open Food Facts</span>`:''}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Quantidade</label>
+      <div class="qty-pick">
+        <input type="number" class="form-input" id="qty-input" value="100" min="1" step="1" oninput="updateQtyPreview()">
+        <span class="qty-unit">g</span>
+      </div>
+    </div>
+    <div id="qty-preview" style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:14px;font-size:13px;font-family:'Syne',sans-serif;font-weight:700;text-align:center"></div>
+    ${isOff?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft);margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="qty-save-db" checked style="width:16px;height:16px;cursor:pointer">
+      Guardar na minha base de alimentos
+    </label>`:''}
+    <button class="btn btn-dark" onclick="confirmQty()">Adicionar à refeição</button>`;
+  document.getElementById('qty-modal').classList.add('show');
+  updateQtyPreview();
+  document.getElementById('qty-input').focus();
+  document.getElementById('qty-input').select();
+}
+
+function updateQtyPreview(){
+  const food=pendingFood;if(!food)return;
+  const qty=parseFloat(document.getElementById('qty-input').value)||0;
+  const factor=qty/100;
+  const kcal=round1(food.kcal_per_100g*factor);
+  const prot=round1(food.protein_per_100g*factor);
+  const fat=round1(food.fat_per_100g*factor);
+  const carbs=round1(food.carbs_per_100g*factor);
+  document.getElementById('qty-preview').innerHTML=
+    `${qty}g → <span style="color:var(--red)">${kcal} kcal</span> · ${prot}g P · ${fat}g G · ${carbs}g H`;
+}
+
+async function confirmQty(){
+  const food=pendingFood;if(!food)return;
+  const qty=parseFloat(document.getElementById('qty-input').value)||0;
+  if(qty<=0){showToast('⚠️ Insere uma quantidade válida');return;}
+  const factor=qty/100;
+
+  if(food.source==='off'){
+    const saveDb=document.getElementById('qty-save-db')?.checked;
+    if(saveDb){
+      const row={name:food.name,brand:food.brand||'',kcal_per_100g:food.kcal_per_100g,
+        protein_per_100g:food.protein_per_100g,fat_per_100g:food.fat_per_100g,carbs_per_100g:food.carbs_per_100g};
+      const{data,error}=await supa.from('foods').insert(row).select().single();
+      if(!error&&data){
+        foodsCache.push(data);
+        foodsCache.sort((a,b)=>a.name.localeCompare(b.name));
+        showToast('💾 Guardado na tua base!');
+      }
+    }
+  }
+
+  mealBasket.push({
+    food_id:food.id||null,name:food.name,qty,
+    kcal:round1(food.kcal_per_100g*factor),
+    prot:round1(food.protein_per_100g*factor),
+    fat:round1(food.fat_per_100g*factor),
+    carbs:round1(food.carbs_per_100g*factor)
+  });
+  closeQtyModal();
+  renderBasket();
+}
+
+function closeQtyModal(){
+  document.getElementById('qty-modal').classList.remove('show');
+  pendingFood=null;
+}
+
+// ── Basket render ──
+function renderBasket(){
+  const wrap=document.getElementById('meal-basket-wrap');
+  const el=document.getElementById('meal-basket');
+  if(!mealBasket.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const totKcal=round1(mealBasket.reduce((s,i)=>s+i.kcal,0));
+  const totProt=round1(mealBasket.reduce((s,i)=>s+i.prot,0));
+  const totFat=round1(mealBasket.reduce((s,i)=>s+i.fat,0));
+  const totCarbs=round1(mealBasket.reduce((s,i)=>s+i.carbs,0));
+  el.innerHTML=mealBasket.map((item,idx)=>`
+    <div class="basket-item">
+      <div class="basket-item-name">${item.name} <span style="font-weight:400;color:var(--text-soft)">(${item.qty}g)</span></div>
+      <div class="basket-item-macros">${item.kcal} kcal · ${item.prot}g P</div>
+      <button data-action="basket-remove" data-id="${idx}" class="icon-btn" style="flex-shrink:0">✕</button>
+    </div>`).join('')+
+    `<div class="basket-total">
+      <span class="basket-total-label">Total</span>
+      <span class="basket-total-vals">${totKcal} kcal · ${totProt}g P · ${totFat}g G · ${totCarbs}g H</span>
+    </div>`;
+}
+
+// ── Add meal ──
 async function addMeal(){
-  const kcal=parseFloat(document.getElementById('meal-kcal').value)||0;
-  const prot=parseFloat(document.getElementById('meal-prot').value)||0;
-  const fat=parseFloat(document.getElementById('meal-fat').value)||0;
-  const carbs=parseFloat(document.getElementById('meal-carbs').value)||0;
-  const type=document.getElementById('meal-type').value;
-  const desc=document.getElementById('meal-desc').value;
   const date=document.getElementById('meal-date').value||today();
-  if(!kcal){showToast('⚠️ Insere pelo menos as calorias!');return;}
+  const type=document.getElementById('meal-type').value;
+  const extraDesc=document.getElementById('meal-desc').value;
+
+  let kcal,prot,fat,carbs,desc;
+
+  if(mealBasket.length>0){
+    kcal=Math.round(mealBasket.reduce((s,i)=>s+i.kcal,0));
+    prot=round1(mealBasket.reduce((s,i)=>s+i.prot,0));
+    fat=round1(mealBasket.reduce((s,i)=>s+i.fat,0));
+    carbs=round1(mealBasket.reduce((s,i)=>s+i.carbs,0));
+    desc=mealBasket.map(i=>`${i.name} (${i.qty}g)`).join(' + ');
+    if(extraDesc)desc+=' · '+extraDesc;
+  } else {
+    kcal=parseFloat(document.getElementById('meal-kcal').value)||0;
+    prot=parseFloat(document.getElementById('meal-prot').value)||0;
+    fat=parseFloat(document.getElementById('meal-fat').value)||0;
+    carbs=parseFloat(document.getElementById('meal-carbs').value)||0;
+    desc=extraDesc;
+    if(!kcal){showToast('⚠️ Adiciona alimentos ou insere as calorias manualmente!');return;}
+  }
+
   const btn=document.getElementById('add-meal-btn');
   btn.disabled=true;setSyncStatus('loading');
   const row={user_id:currentUser,date,type,description:desc,kcal,protein:prot,fat,carbs,
     time:new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})};
   const{data,error}=await supa.from('meals').insert(row).select().single();
   if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
+
   if(date===today()){
     const last=cache[currentUser].lastLog;
     const yest=new Date();yest.setDate(yest.getDate()-1);
@@ -342,6 +739,8 @@ async function addMeal(){
   }
   if(!cache[currentUser].meals[date])cache[currentUser].meals[date]=[];
   cache[currentUser].meals[date].push(data);
+
+  mealBasket=[];renderBasket();
   ['meal-kcal','meal-prot','meal-fat','meal-carbs','meal-desc'].forEach(i=>document.getElementById(i).value='');
   setSyncStatus('ok');showToast(`✅ Guardado em ${formatDate(date)}!`);btn.disabled=false;renderAll();
 }
@@ -396,6 +795,138 @@ function confirmDeleteWeight(id){
   if(confirm('Apagar esta pesagem?'))deleteWeightDirect(id);
 }
 
+// ── Foods CRUD ──
+function openAddFood(){
+  editingFoodId=null;
+  document.getElementById('food-modal-title').textContent='Novo alimento';
+  renderFoodForm({});
+  document.getElementById('food-modal').classList.add('show');
+}
+
+function openEditFood(id){
+  editingFoodId=id;
+  const food=foodsCache.find(f=>f.id===id);
+  if(!food){showToast('Alimento não encontrado');return;}
+  document.getElementById('food-modal-title').textContent='Editar alimento';
+  renderFoodForm(food);
+  document.getElementById('food-modal').classList.add('show');
+}
+
+function renderFoodForm(food){
+  document.getElementById('food-modal-body').innerHTML=`
+    <div class="form-group"><label class="form-label">Nome *</label>
+      <input type="text" class="form-input" id="ff-name" value="${(food.name||'').replace(/"/g,'&quot;')}" placeholder="ex: Aveia"></div>
+    <div class="form-group"><label class="form-label">Marca / detalhe</label>
+      <input type="text" class="form-input" id="ff-brand" value="${(food.brand||'').replace(/"/g,'&quot;')}" placeholder="ex: Pingo Doce"></div>
+    <div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--text-soft)">Valores por 100g</div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="form-group" style="margin:0"><label class="form-label">Calorias (kcal)</label>
+        <input type="number" class="form-input" id="ff-kcal" value="${food.kcal_per_100g||''}" placeholder="0"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label>
+        <input type="number" class="form-input" id="ff-prot" value="${food.protein_per_100g||''}" placeholder="0"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label>
+        <input type="number" class="form-input" id="ff-fat" value="${food.fat_per_100g||''}" placeholder="0"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label>
+        <input type="number" class="form-input" id="ff-carbs" value="${food.carbs_per_100g||''}" placeholder="0"></div>
+    </div>
+    <button class="btn btn-dark" onclick="saveFoodForm()">Guardar alimento</button>`;
+}
+
+async function saveFoodForm(){
+  const name=document.getElementById('ff-name').value.trim();
+  if(!name){showToast('⚠️ O nome é obrigatório');return;}
+  const kcal=parseFloat(document.getElementById('ff-kcal').value)||0;
+  if(!kcal){showToast('⚠️ Insere pelo menos as calorias');return;}
+  const row={
+    name,
+    brand:document.getElementById('ff-brand').value.trim(),
+    kcal_per_100g:kcal,
+    protein_per_100g:parseFloat(document.getElementById('ff-prot').value)||0,
+    fat_per_100g:parseFloat(document.getElementById('ff-fat').value)||0,
+    carbs_per_100g:parseFloat(document.getElementById('ff-carbs').value)||0
+  };
+  setSyncStatus('loading');
+  if(editingFoodId){
+    const{data,error}=await supa.from('foods').update(row).eq('id',editingFoodId).select().single();
+    if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
+    const idx=foodsCache.findIndex(f=>f.id===editingFoodId);
+    if(idx!==-1)foodsCache[idx]=data;
+    else foodsCache.push(data);
+  } else {
+    const{data,error}=await supa.from('foods').insert(row).select().single();
+    if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
+    foodsCache.push(data);
+  }
+  foodsCache.sort((a,b)=>a.name.localeCompare(b.name));
+  setSyncStatus('ok');showToast(editingFoodId?'✅ Alimento atualizado!':'✅ Alimento adicionado!');
+  closeFoodModal();renderAlimentos();
+}
+
+async function confirmDeleteFood(id){
+  if(!confirm('Apagar este alimento?'))return;
+  setSyncStatus('loading');
+  const{error}=await supa.from('foods').delete().eq('id',id);
+  if(error){setSyncStatus('error');showToast('❌ Erro ao apagar');return;}
+  foodsCache=foodsCache.filter(f=>f.id!==id);
+  setSyncStatus('ok');showToast('🗑️ Alimento removido');renderAlimentos();
+}
+
+function closeFoodModal(){
+  document.getElementById('food-modal').classList.remove('show');
+  editingFoodId=null;
+}
+
+function renderAlimentos(){
+  const q=(document.getElementById('food-list-search')?.value||'').trim().toLowerCase();
+  const list=q?foodsCache.filter(f=>f.name.toLowerCase().includes(q)||(f.brand||'').toLowerCase().includes(q)):foodsCache;
+  const el=document.getElementById('alimentos-list');
+  if(!el)return;
+  if(foodsCache.length===0){
+    el.innerHTML=`<div class="empty-state">
+      <div class="emoji">🥗</div>
+      <div style="font-weight:600;margin-bottom:8px">Tabela de alimentos não encontrada</div>
+      <div style="font-size:12px;line-height:1.6;text-align:left;background:var(--bg);border-radius:10px;padding:12px;margin-top:8px">
+        Cria a tabela no Supabase (SQL Editor):<br><br>
+        <code style="font-size:10px;word-break:break-all;display:block;background:#1A1A1A;color:#fff;padding:10px;border-radius:8px;line-height:1.8">
+CREATE TABLE foods (<br>
+&nbsp;&nbsp;id uuid DEFAULT gen_random_uuid() PRIMARY KEY,<br>
+&nbsp;&nbsp;name text NOT NULL,<br>
+&nbsp;&nbsp;brand text DEFAULT '',<br>
+&nbsp;&nbsp;kcal_per_100g numeric NOT NULL DEFAULT 0,<br>
+&nbsp;&nbsp;protein_per_100g numeric NOT NULL DEFAULT 0,<br>
+&nbsp;&nbsp;fat_per_100g numeric NOT NULL DEFAULT 0,<br>
+&nbsp;&nbsp;carbs_per_100g numeric NOT NULL DEFAULT 0,<br>
+&nbsp;&nbsp;created_at timestamptz DEFAULT now()<br>
+);<br><br>
+ALTER TABLE foods ENABLE ROW LEVEL SECURITY;<br>
+CREATE POLICY "public_foods" ON foods<br>
+FOR ALL TO anon<br>
+USING (true) WITH CHECK (true);
+        </code>
+        <div style="margin-top:10px">Depois recarrega a página.</div>
+      </div>
+    </div>`;
+    return;
+  }
+  if(!list.length){
+    el.innerHTML=`<div class="empty-state"><div class="emoji">🔍</div>Nenhum alimento encontrado</div>`;return;
+  }
+  el.innerHTML=list.map(f=>`
+    <div class="food-list-item">
+      <div style="flex:1;min-width:0">
+        <div class="food-list-name">${f.name}${f.brand?` <span style="font-weight:400;font-size:11px;color:var(--text-soft)">${f.brand}</span>`:''}</div>
+        <div class="food-list-macros">${f.kcal_per_100g} kcal · ${f.protein_per_100g}g P · ${f.fat_per_100g}g G · ${f.carbs_per_100g}g H <span style="color:var(--border)">/ 100g</span></div>
+      </div>
+      <div class="action-btns">
+        <button data-action="edit-food" data-id="${f.id}" class="icon-btn" title="Editar">✏️</button>
+        <button data-action="delete-food" data-id="${f.id}" class="icon-btn" title="Apagar">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Render helpers ──
 function getTotals(user,date){
   return(cache[user].meals[date]||[]).reduce((a,m)=>({kcal:a.kcal+(m.kcal||0),prot:a.prot+(m.protein||0),fat:a.fat+(m.fat||0),carbs:a.carbs+(m.carbs||0)}),{kcal:0,prot:0,fat:0,carbs:0});
 }
@@ -414,7 +945,7 @@ function updateAddBtn(){
 
 function renderAll(){renderHoje();renderPeso();renderHistorico();renderConquistas();renderDuelo();updateAddBtn();}
 
-// ── RENDER HOJE ────────────────────────────────────────────────────────────
+// ── RENDER HOJE ──
 function mealRowHtml(m,date){
   const sid=eid(m.id);
   return`<div class="dt-meals dt-row">
@@ -475,7 +1006,7 @@ function renderHoje(){
     <div class="card"><div class="card-title">Refeições de hoje</div>${mealsHtml}</div>`;
 }
 
-// ── RENDER PESO ────────────────────────────────────────────────────────────
+// ── RENDER PESO ──
 function renderPeso(){
   const weights=cache[currentUser].weights;
   const tgt=TARGETS[currentUser];
@@ -501,11 +1032,6 @@ function renderPeso(){
         <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn" title="Apagar">🗑️</button>
       </div>
     </div>`).join('');
-  const histList=`<div class="dt-wrap">
-    <div class="dt-weights dt-head">
-      <span>Data</span><span>Peso</span><span class="dt-ra">Gord%</span><span class="dt-ra">Músculo</span><span>Outros</span><span></span>
-    </div>${histRows}
-  </div>`;
   const metricsHtml=latest.fat_pct?`<div class="card"><div class="card-title">📊 Composição corporal</div><div class="metrics-grid">
     ${latest.fat_pct?`<div class="metric-item"><div class="metric-name">% Gordura</div><div class="metric-val">${latest.fat_pct}<span>%</span></div></div>`:''}
     ${latest.muscle?`<div class="metric-item"><div class="metric-name">Músculo</div><div class="metric-val">${latest.muscle}<span>kg</span></div></div>`:''}
@@ -527,10 +1053,16 @@ function renderPeso(){
           <span>Falta: <strong>${toGo>0?toGo:0}kg</strong></span></div>
       </div>
     </div>${metricsHtml}
-    <div class="card"><div class="card-title">Histórico de pesagens</div>${histList}</div>`;
+    <div class="card"><div class="card-title">Histórico de pesagens</div>
+      <div class="dt-wrap">
+        <div class="dt-weights dt-head">
+          <span>Data</span><span>Peso</span><span class="dt-ra">Gord%</span><span class="dt-ra">Músculo</span><span>Outros</span><span></span>
+        </div>${histRows}
+      </div>
+    </div>`;
 }
 
-// ── RENDER HISTÓRICO (com expansão por dia) ────────────────────────────────
+// ── RENDER HISTÓRICO ──
 function renderHistorico(){
   const meals=cache[currentUser].meals;
   const dates=Object.keys(meals).sort().reverse().slice(0,30);
@@ -538,7 +1070,6 @@ function renderHistorico(){
   if(!dates.length){document.getElementById('historico-display').innerHTML=`<div class="card"><div class="empty-state"><div class="emoji">📅</div>Sem histórico</div></div>`;return;}
   const w7=dates.slice(0,7);
   const avg=w7.length?Math.round(w7.reduce((s,d)=>s+getTotals(currentUser,d).kcal,0)/w7.length):0;
-
   const rows=dates.map(d=>{
     const t=getTotals(currentUser,d);
     const ok=t.kcal<=tgt.kcal*1.05;
@@ -549,8 +1080,7 @@ function renderHistorico(){
       <div class="dt-wrap">
         <div class="dt-meals dt-head">
           <span>Hora</span><span>Tipo</span><span>Descrição</span>
-          <span class="dt-ra">Kcal</span><span class="dt-ra">P</span><span class="dt-ra">G</span><span class="dt-ra">H</span>
-          <span></span>
+          <span class="dt-ra">Kcal</span><span class="dt-ra">P</span><span class="dt-ra">G</span><span class="dt-ra">H</span><span></span>
         </div>
         ${dayMeals.map(m=>mealRowHtml(m,d)).join('')}
       </div>
@@ -571,7 +1101,6 @@ function renderHistorico(){
       ${mealDetail}
     </div>`;
   }).join('');
-
   document.getElementById('historico-display').innerHTML=`
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div><div class="card-title" style="margin:0">Média semanal</div>
@@ -591,7 +1120,7 @@ function renderHistorico(){
     </div>`;
 }
 
-// ── EDIT MODAL — abrir/fechar ──────────────────────────────────────────────
+// ── Edit modal ──
 function closeEditModal(){
   document.getElementById('edit-modal').classList.remove('show');
   editingMealId=null;editingMealDate=null;editingWeightId=null;
@@ -600,7 +1129,6 @@ function closeEditModal(){
 function openEditMeal(id,date){
   const sid=eid(id);
   let meal=null;
-  // Procura na data indicada primeiro, depois em todas as datas
   for(const d of Object.keys(cache[currentUser].meals)){
     const found=cache[currentUser].meals[d].find(m=>eid(m.id)===sid);
     if(found){meal=found;editingMealDate=d;break;}
@@ -641,7 +1169,6 @@ async function saveMealEdit(){
   setSyncStatus('loading');
   const{data,error}=await supa.from('meals').update(updates).eq('id',editingMealId).select().single();
   if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
-  // Actualiza cache
   if(cache[currentUser].meals[editingMealDate]){
     cache[currentUser].meals[editingMealDate]=cache[currentUser].meals[editingMealDate].filter(m=>eid(m.id)!==editingMealId);
     if(!cache[currentUser].meals[editingMealDate].length)delete cache[currentUser].meals[editingMealDate];
@@ -699,7 +1226,7 @@ async function saveWeightEdit(){
   closeEditModal();setSyncStatus('ok');showToast('⚖️ Pesagem atualizada!');renderAll();
 }
 
-// ── CONQUISTAS + DUELO (sem alterações) ────────────────────────────────────
+// ── Conquistas + Duelo ──
 const ACHIEVEMENTS=[
   {id:'first_log',icon:'🌟',name:'Primeiro registo',check:(u)=>Object.keys(cache[u].meals).length>=1},
   {id:'streak_3',icon:'🔥',name:'3 dias seguidos',check:(u)=>cache[u].streak>=3},
@@ -779,7 +1306,7 @@ function renderDuelo(){
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
+  setTimeout(()=>t.classList.remove('show'),2800);
 }
 
 document.getElementById('meal-date').value=today();
