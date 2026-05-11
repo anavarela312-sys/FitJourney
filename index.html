@@ -162,6 +162,30 @@
   .food-list-brand{font-size:10px;color:var(--text-soft);}
   .section-toggle{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:4px;padding:4px 0;font-family:'DM Sans',sans-serif;}
   .section-toggle:hover{color:var(--text);}
+
+  /* ── Workout ── */
+  .workout-type-btn{flex:1;padding:11px;border:2px solid var(--border);border-radius:10px;background:var(--bg);cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;transition:all 0.2s;text-align:center;}
+  .workout-type-btn.active{border-color:var(--text);background:var(--text);color:#fff;}
+  .exercise-card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:10px;border:2px solid var(--border);}
+  .exercise-card-hd{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+  .ex-name-input{flex:1;padding:9px 11px;border:2px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;}
+  .ex-name-input:focus{border-color:var(--text);}
+  .ex-type-select{padding:9px 8px;border:2px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--text);cursor:pointer;outline:none;}
+  .last-hint{font-size:11px;color:var(--joao-deep);background:var(--joao-light);border-radius:8px;padding:6px 10px;margin-bottom:8px;line-height:1.5;}
+  .set-row{display:grid;grid-template-columns:24px 1fr 14px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;}
+  .set-num{font-size:11px;color:var(--text-soft);font-weight:600;text-align:center;}
+  .set-inp{padding:7px 6px;border:2px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);width:100%;text-align:center;outline:none;}
+  .set-inp:focus{border-color:var(--text);}
+  .set-sep{font-size:12px;color:var(--text-soft);text-align:center;}
+  .wk-hist-item{padding:12px 0;border-bottom:1px solid var(--border);}
+  .wk-hist-item:last-child{border-bottom:none;}
+  .wk-hist-hd{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .wk-badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+  .wk-badge-gym{background:#F0EBF5;color:#7B5EA7;}
+  .wk-badge-walk{background:#E8F5ED;color:var(--green);}
+  .wk-ex-detail{padding:6px 0 0;}
+  .wk-ex-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .wk-ex-row:last-child{border-bottom:none;}
 </style>
 </head>
 <body>
@@ -179,6 +203,7 @@
   <button class="tab" onclick="showTab('peso',this)">⚖️ Peso</button>
   <button class="tab" onclick="showTab('historico',this)">📅 Histórico</button>
   <button class="tab" onclick="showTab('alimentos',this)">🥗 Alimentos</button>
+  <button class="tab" onclick="showTab('treino',this)">💪 Treino</button>
   <button class="tab" onclick="showTab('conquistas',this)">🏆 Conquistas</button>
   <button class="tab" onclick="showTab('duelo',this)">⚔️ Duelo</button>
 </div>
@@ -310,6 +335,62 @@
     </div>
   </div>
 
+  <!-- ── TREINO ── -->
+  <div id="panel-treino" class="panel">
+    <div class="user-selector">
+      <button class="user-btn ana" onclick="setUser('ana')">💗 Ana</button>
+      <button class="user-btn joao" onclick="setUser('joao')">💙 João</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💪 Registar treino</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="workout-type-btn active" id="wt-btn-gym" onclick="setWorkoutType('gym')">🏋️ Ginásio</button>
+        <button class="workout-type-btn" id="wt-btn-walk" onclick="setWorkoutType('walk')">🚶 Caminhada</button>
+      </div>
+
+      <!-- Gym form -->
+      <div id="wf-gym">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="gym-date">
+        </div>
+        <datalist id="ex-suggestions"></datalist>
+        <div id="gym-exercises"></div>
+        <button class="btn-outline" onclick="addGymExercise()" style="margin-bottom:12px">+ Adicionar exercício</button>
+        <button class="btn btn-dark" id="save-gym-btn" onclick="saveGymWorkout()">💪 Guardar treino</button>
+      </div>
+
+      <!-- Walk form -->
+      <div id="wf-walk" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="walk-date">
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Duração (min)</label>
+            <input type="number" class="form-input" id="walk-duration" placeholder="45">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Distância (km)</label>
+            <input type="number" step="0.01" class="form-input" id="walk-distance" placeholder="3.5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Calorias gastas (kcal)</label>
+          <input type="number" class="form-input" id="walk-kcal" placeholder="280">
+        </div>
+        <button class="btn btn-dark" onclick="saveWalkWorkout()">🚶 Guardar caminhada</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Histórico de treinos</div>
+      <div id="treino-history"><div class="empty-state"><div class="emoji">💪</div>Sem treinos registados</div></div>
+    </div>
+  </div>
+
   <!-- ── CONQUISTAS ── -->
   <div id="panel-conquistas" class="panel">
     <div class="user-selector">
@@ -374,6 +455,10 @@ const TARGETS={
 let currentUser='ana';
 let cache={ana:{meals:{},weights:[],streak:0,lastLog:null},joao:{meals:{},weights:[],streak:0,lastLog:null}};
 let foodsCache=[];
+let workoutCache={ana:[],joao:[]};
+let gymSession=[];
+let currentWorkoutType='gym';
+let expandedWorkouts=new Set();
 let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
@@ -442,6 +527,7 @@ async function loadAll(){
       cache[u].lastLog=streak?.last_log||null;
     }
     await loadFoods();
+    await loadWorkouts();
     setSyncStatus('ok');renderAll();
   }catch(e){
     setSyncStatus('error');showToast('⚠️ Erro ao carregar dados');renderAll();
@@ -466,6 +552,7 @@ function showTab(tab,el){
   document.getElementById('panel-'+tab).classList.add('active');
   el.classList.add('active');
   if(tab==='alimentos')renderAlimentos();
+  else if(tab==='treino'){renderTreino();renderGymBuilder();}
   else renderAll();
 }
 
@@ -1310,6 +1397,228 @@ function renderDuelo(){
     </div>`;
 }
 
+// ── WORKOUT ───────────────────────────────────────────────────────────────────
+async function loadWorkouts(){
+  for(const u of['ana','joao']){
+    const{data,error}=await supa.from('workout_sessions')
+      .select('*, workout_exercises(*)')
+      .eq('user_id',u).order('date',{ascending:false}).limit(60);
+    if(error){workoutCache[u]=[];continue;}
+    workoutCache[u]=(data||[]).map(s=>({
+      ...s,
+      workout_exercises:(s.workout_exercises||[]).sort((a,b)=>a.order_index-b.order_index)
+    }));
+  }
+}
+
+function setWorkoutType(type){
+  currentWorkoutType=type;
+  document.getElementById('wf-gym').style.display=type==='gym'?'block':'none';
+  document.getElementById('wf-walk').style.display=type==='walk'?'block':'none';
+  document.getElementById('wt-btn-gym').className='workout-type-btn'+(type==='gym'?' active':'');
+  document.getElementById('wt-btn-walk').className='workout-type-btn'+(type==='walk'?' active':'');
+}
+
+function getExerciseSuggestions(){
+  const names=new Set();
+  workoutCache[currentUser].forEach(s=>(s.workout_exercises||[]).forEach(e=>names.add(e.name)));
+  return[...names].sort();
+}
+
+function getLastWorkoutForExercise(name){
+  const q=name.toLowerCase();
+  for(const s of workoutCache[currentUser]){
+    const ex=(s.workout_exercises||[]).find(e=>e.name.toLowerCase()===q);
+    if(ex)return{date:s.date,exercise:ex};
+  }
+  return null;
+}
+
+function formatLastExercise(ex){
+  if(ex.exercise_type==='cardio')return`${ex.duration_min} min cardio`;
+  const sets=ex.sets_data||[];
+  return sets.length?sets.map(s=>`${s.reps}×${s.weight}kg`).join(' · '):'—';
+}
+
+function updateExerciseName(idx,value){
+  gymSession[idx].name=value;
+  const hint=document.getElementById(`ex-hint-${idx}`);
+  if(!hint)return;
+  if(value.length>2){
+    const last=getLastWorkoutForExercise(value);
+    if(last){
+      hint.innerHTML=`📊 Último (${formatDate(last.date)}): ${formatLastExercise(last.exercise)}`;
+      hint.style.display='block';
+    }else hint.style.display='none';
+  }else hint.style.display='none';
+}
+
+function changeExerciseType(idx,type){
+  gymSession[idx].type=type;
+  if(type==='machine'&&!gymSession[idx].sets.length)gymSession[idx].sets=[{reps:'',weight:''}];
+  renderGymBuilder();
+}
+
+function addGymExercise(){
+  gymSession.push({name:'',type:'machine',sets:[{reps:'',weight:''}],duration_min:''});
+  renderGymBuilder();
+  setTimeout(()=>{const inputs=document.querySelectorAll('.ex-name-input');if(inputs.length)inputs[inputs.length-1].focus();},50);
+}
+
+function removeGymExercise(idx){gymSession.splice(idx,1);renderGymBuilder();}
+function addGymSet(idx){gymSession[idx].sets.push({reps:'',weight:''});renderGymBuilder();}
+function removeGymSet(ei,si){gymSession[ei].sets.splice(si,1);renderGymBuilder();}
+
+function renderGymBuilder(){
+  const el=document.getElementById('gym-exercises');
+  if(!el)return;
+  const suggestions=getExerciseSuggestions();
+  document.getElementById('ex-suggestions').innerHTML=suggestions.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">`).join('');
+
+  if(!gymSession.length){
+    el.innerHTML=`<div class="empty-state" style="padding:16px 0"><div class="emoji">🏋️</div>Adiciona o primeiro exercício</div>`;
+    return;
+  }
+
+  el.innerHTML=gymSession.map((ex,idx)=>{
+    const last=ex.name.length>2?getLastWorkoutForExercise(ex.name):null;
+    const hintHtml=`<div class="last-hint" id="ex-hint-${idx}" style="display:${last?'block':'none'}">${last?`📊 Último (${formatDate(last.date)}): ${formatLastExercise(last.exercise)}`:''}</div>`;
+
+    let bodyHtml='';
+    if(ex.type==='machine'){
+      const setRows=ex.sets.map((s,si)=>`
+        <div class="set-row">
+          <span class="set-num">${si+1}</span>
+          <input type="number" class="set-inp" value="${s.reps||''}" placeholder="Reps" min="1"
+            onchange="gymSession[${idx}].sets[${si}].reps=this.value">
+          <span class="set-sep">×</span>
+          <input type="number" class="set-inp" value="${s.weight||''}" placeholder="kg" step="0.5" min="0"
+            onchange="gymSession[${idx}].sets[${si}].weight=this.value">
+          <button class="icon-btn" onclick="removeGymSet(${idx},${si})">✕</button>
+        </div>`).join('');
+      bodyHtml=setRows+`<button class="btn-outline" style="width:auto;padding:6px 14px;font-size:11px;margin-top:4px" onclick="addGymSet(${idx})">+ Série</button>`;
+    }else{
+      bodyHtml=`<div style="display:flex;align-items:center;gap:8px">
+        <input type="number" class="set-inp" style="max-width:80px" value="${ex.duration_min||''}" placeholder="min" min="1"
+          onchange="gymSession[${idx}].duration_min=this.value">
+        <span style="font-size:13px;color:var(--text-soft)">minutos de cardio</span>
+      </div>`;
+    }
+
+    return`<div class="exercise-card">
+      <div class="exercise-card-hd">
+        <input type="text" class="ex-name-input" value="${(ex.name||'').replace(/"/g,'&quot;')}" placeholder="Nome do exercício..."
+          list="ex-suggestions" oninput="updateExerciseName(${idx},this.value)">
+        <select class="ex-type-select" onchange="changeExerciseType(${idx},this.value)">
+          <option value="machine"${ex.type==='machine'?' selected':''}>🏋️ Máq.</option>
+          <option value="cardio"${ex.type==='cardio'?' selected':''}>🫀 Cardio</option>
+        </select>
+        <button class="icon-btn" onclick="removeGymExercise(${idx})">🗑️</button>
+      </div>
+      ${hintHtml}
+      ${bodyHtml}
+    </div>`;
+  }).join('');
+}
+
+async function saveGymWorkout(){
+  const valid=gymSession.filter(ex=>ex.name.trim());
+  if(!valid.length){showToast('⚠️ Adiciona pelo menos um exercício com nome');return;}
+  const btn=document.getElementById('save-gym-btn');
+  btn.disabled=true;setSyncStatus('loading');
+  const date=document.getElementById('gym-date').value||today();
+  const{data:session,error}=await supa.from('workout_sessions')
+    .insert({user_id:currentUser,date,type:'gym'}).select().single();
+  if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
+  const exercises=valid.map((ex,i)=>({
+    session_id:session.id,name:ex.name.trim(),exercise_type:ex.type,
+    sets_data:ex.type==='machine'?ex.sets.filter(s=>s.reps||s.weight).map(s=>({reps:parseFloat(s.reps)||0,weight:parseFloat(s.weight)||0})):[],
+    duration_min:ex.type==='cardio'?(parseFloat(ex.duration_min)||0):null,
+    order_index:i
+  }));
+  const{data:savedEx,error:exErr}=await supa.from('workout_exercises').insert(exercises).select();
+  if(exErr){setSyncStatus('error');showToast('❌ Erro ao guardar exercícios');btn.disabled=false;return;}
+  workoutCache[currentUser].unshift({...session,workout_exercises:savedEx||exercises});
+  gymSession=[];
+  setSyncStatus('ok');showToast('💪 Treino guardado!');btn.disabled=false;
+  renderGymBuilder();renderTreino();
+}
+
+async function saveWalkWorkout(){
+  const date=document.getElementById('walk-date').value||today();
+  const duration=parseFloat(document.getElementById('walk-duration').value)||0;
+  const distance=parseFloat(document.getElementById('walk-distance').value)||0;
+  const kcal=parseFloat(document.getElementById('walk-kcal').value)||0;
+  if(!duration&&!distance){showToast('⚠️ Insere pelo menos o tempo ou distância');return;}
+  setSyncStatus('loading');
+  const{data:session,error}=await supa.from('workout_sessions')
+    .insert({user_id:currentUser,date,type:'walk',duration_min:duration,distance_km:distance,kcal_burned:kcal})
+    .select().single();
+  if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
+  workoutCache[currentUser].unshift({...session,workout_exercises:[]});
+  workoutCache[currentUser].sort((a,b)=>b.date.localeCompare(a.date));
+  ['walk-duration','walk-distance','walk-kcal'].forEach(id=>document.getElementById(id).value='');
+  setSyncStatus('ok');showToast('🚶 Caminhada registada!');renderTreino();
+}
+
+function toggleWorkout(id){
+  if(expandedWorkouts.has(id))expandedWorkouts.delete(id);
+  else expandedWorkouts.add(id);
+  renderTreino();
+}
+
+function renderTreino(){
+  const el=document.getElementById('treino-history');
+  if(!el)return;
+  const sessions=workoutCache[currentUser];
+  if(!sessions.length){
+    el.innerHTML=`<div class="empty-state"><div class="emoji">💪</div>Sem treinos registados</div>`;return;
+  }
+  el.innerHTML=sessions.slice(0,20).map(s=>{
+    const isGym=s.type==='gym';
+    const expanded=expandedWorkouts.has(s.id);
+    let summary='';
+    if(isGym){
+      const names=(s.workout_exercises||[]).map(e=>e.name).join(' · ')||'—';
+      summary=`<div style="font-size:11px;color:var(--text-soft);margin-top:2px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${names}</div>`;
+    }else{
+      const parts=[];
+      if(s.duration_min)parts.push(`${s.duration_min} min`);
+      if(s.distance_km)parts.push(`${s.distance_km} km`);
+      if(s.kcal_burned)parts.push(`${s.kcal_burned} kcal`);
+      summary=`<div style="font-size:11px;color:var(--text-soft);margin-top:2px">${parts.join(' · ')||'—'}</div>`;
+    }
+    let detail='';
+    if(expanded&&isGym){
+      detail=`<div class="wk-ex-detail">${(s.workout_exercises||[]).map(ex=>{
+        const right=ex.exercise_type==='cardio'
+          ?`${ex.duration_min||0} min cardio`
+          :(ex.sets_data||[]).length?(ex.sets_data.map(st=>`${st.reps}×${st.weight}kg`).join(' · ')):'—';
+        return`<div class="wk-ex-row"><span style="font-weight:500">${ex.name}</span><span style="color:var(--text-soft)">${right}</span></div>`;
+      }).join('')}</div>`;
+    }else if(expanded&&!isGym){
+      const parts=[];
+      if(s.duration_min)parts.push(`⏱ ${s.duration_min} min`);
+      if(s.distance_km)parts.push(`📍 ${s.distance_km} km`);
+      if(s.kcal_burned)parts.push(`🔥 ${s.kcal_burned} kcal`);
+      detail=`<div class="wk-ex-detail"><div style="font-size:12px;color:var(--text-soft);padding-top:4px">${parts.join('&nbsp;&nbsp;&nbsp;')}</div></div>`;
+    }
+    return`<div class="wk-hist-item">
+      <div class="wk-hist-hd" onclick="toggleWorkout('${s.id}')">
+        <div>
+          <span style="font-size:12px;color:var(--text-soft)">${formatDate(s.date)}</span>
+          ${summary}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="wk-badge ${isGym?'wk-badge-gym':'wk-badge-walk'}">${isGym?'🏋️ Ginásio':'🚶 Caminhada'}</span>
+          <span style="color:var(--text-soft);font-size:12px">${expanded?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${detail}
+    </div>`;
+  }).join('');
+}
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
@@ -1318,6 +1627,8 @@ function showToast(msg){
 
 document.getElementById('meal-date').value=today();
 document.getElementById('w-date').value=today();
+document.getElementById('gym-date').value=today();
+document.getElementById('walk-date').value=today();
 loadAll();
 </script>
 </body>
