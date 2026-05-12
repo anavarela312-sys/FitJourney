@@ -226,8 +226,8 @@
     .dt-bold{font-size:12px;}
     /* Basket total */
     .basket-total-vals{font-size:11px;}
-    /* Food dropdown full width on mobile */
-    .food-dropdown{position:fixed;left:10px;right:10px;top:auto;}
+    /* Food dropdown — manter position:absolute, só limitar altura */
+    .food-dropdown{max-height:180px;}
   }
 </style>
 </head>
@@ -643,7 +643,7 @@ function renderFoodDropdown(localMatches,offRes,offLoad,q){
   if(localMatches.length>0){
     if(offLoad||offRes.length>0)html+=`<div class="food-drop-section">📦 Os meus alimentos</div>`;
     html+=localMatches.map(f=>`
-      <div class="food-drop-item" onmousedown="pickFood('local','${f.id}')">
+      <div class="food-drop-item" onpointerdown="pickFood('local','${f.id}')">
         <div class="food-drop-name">${f.name}${f.brand?` <span style="font-weight:400;color:var(--text-soft)">· ${f.brand}</span>`:''}</div>
         <div class="food-drop-macros">${f.kcal_per_100g} kcal · ${f.protein_per_100g}g P · ${f.fat_per_100g}g G · ${f.carbs_per_100g}g H <span style="color:var(--text-soft)">(por ${f.default_serving_g||100}g)</span></div>
       </div>`).join('');
@@ -655,7 +655,7 @@ function renderFoodDropdown(localMatches,offRes,offLoad,q){
   } else if(offRes.length>0){
     html+=`<div class="food-drop-section" style="color:var(--joao-deep)">🌍 Open Food Facts PT</div>`;
     html+=offRes.map((p,i)=>`
-      <div class="food-drop-item food-drop-off" onmousedown="pickFood('off',${i})">
+      <div class="food-drop-item food-drop-off" onpointerdown="pickFood('off',${i})">
         <div class="food-drop-name">${p.name}${p.brand?` <span style="font-weight:400;color:var(--text-soft)">· ${p.brand}</span>`:''}</div>
         <div class="food-drop-macros">${p.kcal} kcal · ${p.prot}g P · ${p.fat}g G · ${p.carbs}g H <span style="color:var(--text-soft)">(por 100g)</span></div>
       </div>`).join('');
