@@ -870,31 +870,33 @@ async function addMeal(){
   const date=document.getElementById('meal-date').value||today();
   const type=document.getElementById('meal-type').value;
   const extraDesc=document.getElementById('meal-desc').value;
-
-  let kcal,prot,fat,carbs,desc;
-
-  if(mealBasket.length>0){
-    kcal=Math.round(mealBasket.reduce((s,i)=>s+i.kcal,0));
-    prot=round1(mealBasket.reduce((s,i)=>s+i.prot,0));
-    fat=round1(mealBasket.reduce((s,i)=>s+i.fat,0));
-    carbs=round1(mealBasket.reduce((s,i)=>s+i.carbs,0));
-    desc=mealBasket.map(i=>`${i.name} (${i.qty}g)`).join(' + ');
-    if(extraDesc)desc+=' · '+extraDesc;
-  } else {
-    kcal=parseFloat(document.getElementById('meal-kcal').value)||0;
-    prot=parseFloat(document.getElementById('meal-prot').value)||0;
-    fat=parseFloat(document.getElementById('meal-fat').value)||0;
-    carbs=parseFloat(document.getElementById('meal-carbs').value)||0;
-    desc=extraDesc;
-    if(!kcal){showToast('⚠️ Adiciona alimentos ou insere as calorias manualmente!');return;}
-  }
-
   const btn=document.getElementById('add-meal-btn');
   btn.disabled=true;setSyncStatus('loading');
-  const row={user_id:currentUser,date,type,description:desc,kcal,protein:prot,fat,carbs,
-    time:new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})};
-  const{data,error}=await supa.from('meals').insert(row).select().single();
-  if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
+  const time=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+
+  if(mealBasket.length>0){
+    // Each basket item becomes its own meal record
+    const rows=mealBasket.map(item=>({
+      user_id:currentUser,date,type,
+      description:item.name+(item.qty?` (${item.qty}g)`:''),
+      kcal:Math.round(item.kcal),protein:item.prot,fat:item.fat,carbs:item.carbs,time
+    }));
+    const{data,error}=await supa.from('meals').insert(rows).select();
+    if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
+    if(!cache[currentUser].meals[date])cache[currentUser].meals[date]=[];
+    cache[currentUser].meals[date].push(...(data||[]));
+  } else {
+    const kcal=parseFloat(document.getElementById('meal-kcal').value)||0;
+    if(!kcal){showToast('⚠️ Adiciona alimentos ou insere as calorias manualmente!');btn.disabled=false;setSyncStatus('ok');return;}
+    const prot=parseFloat(document.getElementById('meal-prot').value)||0;
+    const fat=parseFloat(document.getElementById('meal-fat').value)||0;
+    const carbs=parseFloat(document.getElementById('meal-carbs').value)||0;
+    const row={user_id:currentUser,date,type,description:extraDesc,kcal:Math.round(kcal),protein:prot,fat,carbs,time};
+    const{data,error}=await supa.from('meals').insert(row).select().single();
+    if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
+    if(!cache[currentUser].meals[date])cache[currentUser].meals[date]=[];
+    cache[currentUser].meals[date].push(data);
+  }
 
   if(date===today()){
     const last=cache[currentUser].lastLog;
@@ -905,8 +907,6 @@ async function addMeal(){
     await supa.from('streaks').upsert({user_id:currentUser,streak:ns,last_log:today()});
     cache[currentUser].streak=ns;cache[currentUser].lastLog=today();
   }
-  if(!cache[currentUser].meals[date])cache[currentUser].meals[date]=[];
-  cache[currentUser].meals[date].push(data);
 
   mealBasket=[];renderBasket();
   ['meal-kcal','meal-prot','meal-fat','meal-carbs','meal-desc'].forEach(i=>document.getElementById(i).value='');
