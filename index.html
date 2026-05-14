@@ -490,8 +490,8 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const TARGETS={
-  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66},
-  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90}
+  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25},
+  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15}
 };
 
 let currentUser='ana';
@@ -1241,18 +1241,28 @@ function renderPeso(){
   const chartLabels=weights.map(w=>formatDate(w.date));
   const chartW=weights.map(w=>w.weight);
   const chartF=weights.map(w=>w.fat_pct||null);
-  setTimeout(()=>{initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat);initBodyChart(activeBodyMetric);},0);
+  setTimeout(()=>{initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat,tgt);initBodyChart(activeBodyMetric);},0);
 }
 
-function initWeightChart(labels,wData,fData,color,hasFat){
+function initWeightChart(labels,wData,fData,color,hasFat,tgt){
   const canvas=document.getElementById('weight-chart');
   if(!canvas)return;
   if(weightChartInst){weightChartInst.destroy();weightChartInst=null;}
   const pts=wData.length>20?2:4;
+  // Scale: always show from goalWeight to startWeight so progress is visible
+  const allW=[...wData,tgt.goalWeight,tgt.startWeight];
+  const minW=Math.min(...allW);
+  const maxW=Math.max(...allW);
+  const padW=round2((maxW-minW)*0.04)||0.3;
   const datasets=[{
     label:'Peso (kg)',data:wData,borderColor:color,
     backgroundColor:color+'28',tension:0.35,fill:true,
-    pointRadius:pts,pointHoverRadius:6,borderWidth:2
+    pointRadius:pts,pointHoverRadius:6,borderWidth:2,order:0
+  },{
+    label:'Meta '+tgt.goalWeight+'kg',
+    data:wData.map(()=>tgt.goalWeight),
+    borderColor:'rgba(90,158,111,0.7)',borderDash:[6,4],
+    borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1
   }];
   if(hasFat)datasets.push({
     label:'Gordura (%)',data:fData,borderColor:'#E8A53A',
@@ -1266,11 +1276,12 @@ function initWeightChart(labels,wData,fData,color,hasFat){
       interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:false},tooltip:{
         backgroundColor:'rgba(26,26,26,0.92)',padding:10,
-        titleFont:{size:11},bodyFont:{size:11}
+        titleFont:{size:11},bodyFont:{size:11},
+        filter:item=>item.datasetIndex===0||(hasFat&&item.datasetIndex===2)
       }},
       scales:{
         x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxTicksLimit:7,maxRotation:0}},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>round2(v)+'kg'}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},min:round2(minW-padW),max:round2(maxW+padW),ticks:{font:{size:10},callback:v=>round2(v)+'kg'}},
         fat:{position:'right',display:false,grid:{drawOnChartArea:false},ticks:{callback:v=>round1(v)+'%',font:{size:10}}}
       }
     }
@@ -1288,7 +1299,7 @@ function toggleFatLine(){
 }
 
 const BODY_METRICS=[
-  {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down'},
+  {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down', goalKey:'goalFat'},
   {key:'muscle',   label:'Músculo',    unit:'kg', color:'#5A9E6F', good:'up'},
   {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down'},
   {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up'},
@@ -1334,22 +1345,33 @@ function initBodyChart(metric){
   if(!pts.length)return;
   const labels=pts.map(w=>formatDate(w.date));
   const data=pts.map(w=>round2(w[metric]));
-  const minV=Math.min(...data);
-  const maxV=Math.max(...data);
-  const pad=round2((maxV-minV)*0.15)||0.5;
+  const tgt=TARGETS[currentUser];
+  const goalVal=m.goalKey&&tgt[m.goalKey]!=null?tgt[m.goalKey]:null;
+  // Scale includes first recorded value (journey start) and goal if defined
+  const allVals=[...data,...(goalVal!=null?[goalVal]:[])];
+  const minV=Math.min(...allVals);
+  const maxV=Math.max(...allVals);
+  const pad=round2((maxV-minV)*0.12)||0.5;
+  const datasets=[{
+    label:m.label,data,
+    backgroundColor:m.color+'99',borderColor:m.color,
+    borderWidth:2,borderRadius:6,order:0
+  }];
+  if(goalVal!=null)datasets.push({
+    type:'line',label:'Meta',
+    data:labels.map(()=>goalVal),
+    borderColor:'rgba(90,158,111,0.7)',borderDash:[6,4],
+    borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1
+  });
   bodyChartInst=new Chart(canvas,{
     type:'bar',
-    data:{labels,datasets:[{
-      label:m.label,data,
-      backgroundColor:m.color+'99',borderColor:m.color,
-      borderWidth:2,borderRadius:6,
-    }]},
+    data:{labels,datasets},
     options:{
       responsive:true,
       plugins:{legend:{display:false},tooltip:{
         backgroundColor:'rgba(26,26,26,0.92)',padding:10,
         titleFont:{size:11},bodyFont:{size:11},
-        callbacks:{label:ctx=>`${round2(ctx.raw)}${m.unit}`}
+        callbacks:{label:ctx=>ctx.datasetIndex===0?`${round2(ctx.raw)}${m.unit}`:`Meta: ${goalVal}${m.unit}`}
       }},
       scales:{
         x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxRotation:0}},
