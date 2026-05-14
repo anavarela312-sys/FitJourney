@@ -1182,28 +1182,28 @@ function renderPeso(){
   const histRows=[...weights].reverse().slice(0,10).map(w=>`
     <div class="dt-weights dt-row">
       <div class="dt-muted">${formatDate(w.date)}</div>
-      <div class="dt-bold">${w.weight}<span style="font-size:10px;font-weight:400;color:var(--text-soft)"> kg</span></div>
-      <div class="dt-muted dt-ra">${w.fat_pct?w.fat_pct+'%':'—'}</div>
-      <div class="dt-muted dt-ra">${w.muscle?w.muscle+'kg':'—'}</div>
-      <div class="dt-muted">${[w.bmi?'IMC '+w.bmi:'',w.water?w.water+'%H₂O':''].filter(Boolean).join(' · ')||'—'}</div>
+      <div class="dt-bold">${round2(w.weight)}<span style="font-size:10px;font-weight:400;color:var(--text-soft)"> kg</span></div>
+      <div class="dt-muted dt-ra">${w.fat_pct?round1(w.fat_pct)+'%':'—'}</div>
+      <div class="dt-muted dt-ra">${w.muscle?round1(w.muscle)+'kg':'—'}</div>
+      <div class="dt-muted">${[w.bmi?'IMC '+round1(w.bmi):'',w.water?round1(w.water)+'%H₂O':''].filter(Boolean).join(' · ')||'—'}</div>
       <div class="action-btns">
         <button data-action="edit-weight" data-id="${eid(w.id)}" class="icon-btn">✏️</button>
         <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn">🗑️</button>
       </div>
     </div>`).join('');
   const metricsHtml=latest.fat_pct?`<div class="card"><div class="card-title">📊 Composição corporal</div><div class="metrics-grid">
-    ${latest.fat_pct?`<div class="metric-item"><div class="metric-name">% Gordura</div><div class="metric-val">${latest.fat_pct}<span>%</span></div></div>`:''}
-    ${latest.muscle?`<div class="metric-item"><div class="metric-name">Músculo</div><div class="metric-val">${latest.muscle}<span>kg</span></div></div>`:''}
-    ${latest.bmi?`<div class="metric-item"><div class="metric-name">IMC</div><div class="metric-val">${latest.bmi}</div></div>`:''}
-    ${latest.water?`<div class="metric-item"><div class="metric-name">% Água</div><div class="metric-val">${latest.water}<span>%</span></div></div>`:''}
-    ${latest.bmr?`<div class="metric-item"><div class="metric-name">BMR</div><div class="metric-val">${latest.bmr}<span>kcal</span></div></div>`:''}
-    ${latest.visceral?`<div class="metric-item"><div class="metric-name">Gordura visceral</div><div class="metric-val">${latest.visceral}</div></div>`:''}
-    ${latest.body_age?`<div class="metric-item"><div class="metric-name">Idade corporal</div><div class="metric-val">${latest.body_age}<span>anos</span></div></div>`:''}
+    ${latest.fat_pct?`<div class="metric-item"><div class="metric-name">% Gordura</div><div class="metric-val">${round1(latest.fat_pct)}<span>%</span></div></div>`:''}
+    ${latest.muscle?`<div class="metric-item"><div class="metric-name">Músculo</div><div class="metric-val">${round1(latest.muscle)}<span>kg</span></div></div>`:''}
+    ${latest.bmi?`<div class="metric-item"><div class="metric-name">IMC</div><div class="metric-val">${round1(latest.bmi)}</div></div>`:''}
+    ${latest.water?`<div class="metric-item"><div class="metric-name">% Água</div><div class="metric-val">${round1(latest.water)}<span>%</span></div></div>`:''}
+    ${latest.bmr?`<div class="metric-item"><div class="metric-name">BMR</div><div class="metric-val">${Math.round(latest.bmr)}<span>kcal</span></div></div>`:''}
+    ${latest.visceral?`<div class="metric-item"><div class="metric-name">Gordura visceral</div><div class="metric-val">${round1(latest.visceral)}</div></div>`:''}
+    ${latest.body_age?`<div class="metric-item"><div class="metric-name">Idade corporal</div><div class="metric-val">${Math.round(latest.body_age)}<span>anos</span></div></div>`:''}
   </div></div>`:'';
 
   document.getElementById('peso-display').innerHTML=`
     <div class="card">
-      <div class="weight-display"><div class="weight-big">${latest.weight}<span>kg</span></div>${deltaHtml}</div>
+      <div class="weight-display"><div class="weight-big">${round2(latest.weight)}<span>kg</span></div>${deltaHtml}</div>
       <div style="margin-top:16px">
         <div class="progress-header"><span>Início: ${tgt.startWeight}kg</span>
           <span style="font-family:'Syne',sans-serif;font-weight:700;color:${color}">${pct}% da meta</span>
@@ -1270,8 +1270,8 @@ function initWeightChart(labels,wData,fData,color,hasFat){
       }},
       scales:{
         x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxTicksLimit:7,maxRotation:0}},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'kg'}},
-        fat:{position:'right',display:false,grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%',font:{size:10}}}
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>round2(v)+'kg'}},
+        fat:{position:'right',display:false,grid:{drawOnChartArea:false},ticks:{callback:v=>round1(v)+'%',font:{size:10}}}
       }
     }
   });
@@ -1600,9 +1600,9 @@ function renderDuelo(){
   document.getElementById('duelo-display').innerHTML=`
     <div class="card">
       <div class="vs-row">
-        <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--ana-deep)">💗 Ana</div><div style="font-size:11px;color:var(--text-soft)">${wA.weight}kg</div></div>
+        <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--ana-deep)">💗 Ana</div><div style="font-size:11px;color:var(--text-soft)">${round2(wA.weight)}kg</div></div>
         <div class="vs-text">VS</div>
-        <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--joao-deep)">💙 João</div><div style="font-size:11px;color:var(--text-soft)">${wJ.weight}kg</div></div>
+        <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--joao-deep)">💙 João</div><div style="font-size:11px;color:var(--text-soft)">${round2(wJ.weight)}kg</div></div>
       </div>
       <div class="card-title">Progresso para a meta</div>
       <div style="margin-bottom:8px">
