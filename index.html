@@ -530,6 +530,7 @@ let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
 let pendingFood=null;
+let qtyMode='g';
 let offSearchTimer=null;
 let offResults=[];
 let offLoading=false;
@@ -767,18 +768,41 @@ function pickFood(source,id){
 
 // ── Qty modal ──
 function openQtyModal(food){
+  qtyMode='g';
   const isOff=food.source==='off';
+  const unitW=food.default_serving_g||100;
   document.getElementById('qty-modal-title').textContent=food.name+(food.brand?` · ${food.brand}`:'');
   document.getElementById('qty-modal-body').innerHTML=`
     <div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      Por ${food.default_serving_g||100}g: <strong>${food.kcal_per_100g} kcal</strong> · ${food.protein_per_100g}g P · ${food.fat_per_100g}g G · ${food.carbs_per_100g}g H
+      Por 100g: <strong>${food.kcal_per_100g} kcal</strong> · ${food.protein_per_100g}g P · ${food.fat_per_100g}g G · ${food.carbs_per_100g}g H
       ${isOff?`<span style="background:#E3EFF5;color:var(--joao-deep);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600">🌍 Open Food Facts</span>`:''}
     </div>
-    <div class="form-group">
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button id="qty-mode-g" onclick="setQtyMode('g')"
+        style="flex:1;padding:8px;border:2px solid var(--text);border-radius:10px;background:var(--text);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Gramas</button>
+      <button id="qty-mode-u" onclick="setQtyMode('u')"
+        style="flex:1;padding:8px;border:2px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text-soft);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Unidades</button>
+    </div>
+    <div id="qty-g-wrap" class="form-group">
       <label class="form-label">Quantidade</label>
       <div class="qty-pick">
-        <input type="number" class="form-input" id="qty-input" value="100" min="1" step="1" oninput="updateQtyPreview()">
+        <input type="number" class="form-input" id="qty-input" value="${unitW}" min="1" step="1" oninput="updateQtyPreview()">
         <span class="qty-unit">g</span>
+      </div>
+    </div>
+    <div id="qty-u-wrap" style="display:none">
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Peso de 1 unidade</label>
+          <div class="qty-pick">
+            <input type="number" class="form-input" id="qty-unit-weight" value="${unitW}" min="0.1" step="0.1" oninput="updateQtyPreview()">
+            <span class="qty-unit">g</span>
+          </div>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Nº de unidades</label>
+          <input type="number" class="form-input" id="qty-unit-count" value="1" min="1" step="1" oninput="updateQtyPreview()">
+        </div>
       </div>
     </div>
     <div id="qty-preview" style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:14px;font-size:13px;font-family:'Syne',sans-serif;font-weight:700;text-align:center"></div>
@@ -787,31 +811,61 @@ function openQtyModal(food){
       Guardar na minha base de alimentos
     </label>`:''}
     <button class="btn btn-dark" onclick="confirmQty()">Adicionar à refeição</button>`;
-  const defaultQty=food.default_serving_g||100;
-  document.getElementById('qty-input').value=defaultQty;
   document.getElementById('qty-modal').classList.add('show');
   updateQtyPreview();
   document.getElementById('qty-input').focus();
   document.getElementById('qty-input').select();
 }
 
+function setQtyMode(mode){
+  qtyMode=mode;
+  const isG=mode==='g';
+  document.getElementById('qty-g-wrap').style.display=isG?'':'none';
+  document.getElementById('qty-u-wrap').style.display=isG?'none':'';
+  const btnG=document.getElementById('qty-mode-g');
+  const btnU=document.getElementById('qty-mode-u');
+  btnG.style.background=isG?'var(--text)':'var(--bg)';btnG.style.color=isG?'#fff':'var(--text-soft)';btnG.style.borderColor=isG?'var(--text)':'var(--border)';
+  btnU.style.background=isG?'var(--bg)':'var(--text)';btnU.style.color=isG?'var(--text-soft)':'#fff';btnU.style.borderColor=isG?'var(--border)':'var(--text)';
+  updateQtyPreview();
+  if(!isG)setTimeout(()=>{const el=document.getElementById('qty-unit-count');if(el){el.focus();el.select();}},50);
+}
+
 function updateQtyPreview(){
   const food=pendingFood;if(!food)return;
-  const qty=parseFloat(document.getElementById('qty-input').value)||0;
-  const factor=qty/(food.default_serving_g||100);
+  let qty_g,label;
+  if(qtyMode==='u'){
+    const uw=parseFloat(document.getElementById('qty-unit-weight')?.value)||1;
+    const n=parseFloat(document.getElementById('qty-unit-count')?.value)||0;
+    qty_g=round1(uw*n);
+    label=`${n} un. = ${qty_g}g`;
+  } else {
+    qty_g=parseFloat(document.getElementById('qty-input')?.value)||0;
+    label=`${qty_g}g`;
+  }
+  const factor=qty_g/100;
   const kcal=round1(food.kcal_per_100g*factor);
   const prot=round1(food.protein_per_100g*factor);
   const fat=round1(food.fat_per_100g*factor);
   const carbs=round1(food.carbs_per_100g*factor);
   document.getElementById('qty-preview').innerHTML=
-    `${qty}g → <span style="color:var(--red)">${kcal} kcal</span> · ${prot}g P · ${fat}g G · ${carbs}g H`;
+    `${label} → <span style="color:var(--red)">${kcal} kcal</span> · ${prot}g P · ${fat}g G · ${carbs}g H`;
 }
 
 async function confirmQty(){
   const food=pendingFood;if(!food)return;
-  const qty=parseFloat(document.getElementById('qty-input').value)||0;
-  if(qty<=0){showToast('⚠️ Insere uma quantidade válida');return;}
-  const factor=qty/(food.default_serving_g||100);
+  let qty_g,qtyLabel;
+  if(qtyMode==='u'){
+    const uw=parseFloat(document.getElementById('qty-unit-weight')?.value)||1;
+    const n=parseFloat(document.getElementById('qty-unit-count')?.value)||0;
+    if(n<=0){showToast('⚠️ Insere o número de unidades');return;}
+    qty_g=round1(uw*n);
+    qtyLabel=`${n} un.`;
+  } else {
+    qty_g=parseFloat(document.getElementById('qty-input').value)||0;
+    if(qty_g<=0){showToast('⚠️ Insere uma quantidade válida');return;}
+    qtyLabel=`${qty_g}g`;
+  }
+  const factor=qty_g/100;
 
   if(food.source==='off'){
     const saveDb=document.getElementById('qty-save-db')?.checked;
@@ -828,7 +882,7 @@ async function confirmQty(){
   }
 
   mealBasket.push({
-    food_id:food.id||null,name:food.name,qty,
+    food_id:food.id||null,name:food.name,qty:qty_g,qtyLabel,
     kcal:round1(food.kcal_per_100g*factor),
     prot:round1(food.protein_per_100g*factor),
     fat:round1(food.fat_per_100g*factor),
@@ -855,7 +909,7 @@ function renderBasket(){
   const totCarbs=round1(mealBasket.reduce((s,i)=>s+i.carbs,0));
   el.innerHTML=mealBasket.map((item,idx)=>`
     <div class="basket-item">
-      <div class="basket-item-name">${item.name} <span style="font-weight:400;color:var(--text-soft)">(${item.qty}g)</span></div>
+      <div class="basket-item-name">${item.name} <span style="font-weight:400;color:var(--text-soft)">(${item.qtyLabel||item.qty+'g'})</span></div>
       <div class="basket-item-macros">${item.kcal} kcal · ${item.prot}g P</div>
       <button data-action="basket-remove" data-id="${idx}" class="icon-btn" style="flex-shrink:0">✕</button>
     </div>`).join('')+
@@ -878,7 +932,7 @@ async function addMeal(){
     // Each basket item becomes its own meal record
     const rows=mealBasket.map(item=>({
       user_id:currentUser,date,type,
-      description:item.name+(item.qty?` (${item.qty}g)`:''),
+      description:item.name+(item.qtyLabel?` (${item.qtyLabel})`:item.qty?` (${item.qty}g)`:''),
       kcal:Math.round(item.kcal),protein:item.prot,fat:item.fat,carbs:item.carbs,time
     }));
     const{data,error}=await supa.from('meals').insert(rows).select();
