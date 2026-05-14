@@ -114,9 +114,9 @@
   .icon-btn:hover{opacity:0.7;}
   .action-btns{display:flex;gap:2px;justify-content:flex-end;flex-shrink:0;}
   .dt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .dt-meals{display:grid;grid-template-columns:40px 78px minmax(0,1fr) 52px 34px 34px 34px 46px;gap:5px;align-items:center;min-width:370px;}
-  .dt-hist{display:grid;grid-template-columns:58px minmax(0,1fr) 58px 40px 40px 40px 44px;gap:5px;align-items:center;min-width:360px;}
-  .dt-weights{display:grid;grid-template-columns:54px 62px 42px 46px minmax(0,1fr) 46px;gap:5px;align-items:center;min-width:310px;}
+  .dt-meals{display:grid;grid-template-columns:40px 78px minmax(0,1fr) 52px 34px 34px 34px 68px;gap:5px;align-items:center;min-width:390px;}
+  .dt-hist{display:grid;grid-template-columns:54px minmax(0,1fr) 52px 36px 36px 36px 36px;gap:5px;align-items:center;min-width:320px;}
+  .dt-weights{display:grid;grid-template-columns:54px 62px 42px 46px minmax(0,1fr) 68px;gap:5px;align-items:center;min-width:330px;}
   .dt-head{padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:2px;}
   .dt-head>*{font-size:10px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:0.5px;}
   .dt-row{padding:8px 0;border-bottom:1px solid var(--border);}
@@ -286,7 +286,6 @@
           <input type="text" class="form-input" id="food-search"
             placeholder="ex: aveia, frango, leite..."
             oninput="onFoodSearchInput()"
-            onblur="scheduleFoodDropdownClose()"
             onkeydown="onFoodSearchKey(event)"
             autocomplete="off">
           <div class="food-dropdown" id="food-dropdown"></div>
@@ -509,7 +508,6 @@ let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
 let pendingFood=null;
-let foodDropdownCloseTimer=null;
 let offSearchTimer=null;
 let offResults=[];
 let offLoading=false;
@@ -556,6 +554,7 @@ document.addEventListener('click',function(e){
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
 document.getElementById('food-modal').addEventListener('click',function(e){if(e.target===this)closeFoodModal();});
 document.getElementById('qty-modal').addEventListener('click',function(e){if(e.target===this)closeQtyModal();});
+document.addEventListener('pointerdown',function(e){if(!e.target.closest('.food-search-wrap'))document.getElementById('food-dropdown').classList.remove('open');});
 
 // ── Load ──
 async function loadAll(){
@@ -708,18 +707,11 @@ async function searchOpenFoodFacts(q){
   }
 }
 
-function scheduleFoodDropdownClose(){
-  foodDropdownCloseTimer=setTimeout(()=>{
-    document.getElementById('food-dropdown').classList.remove('open');
-  },200);
-}
-
 function onFoodSearchKey(e){
   if(e.key==='Escape'){document.getElementById('food-dropdown').classList.remove('open');}
 }
 
 function pickFood(source,id){
-  clearTimeout(foodDropdownCloseTimer);
   document.getElementById('food-dropdown').classList.remove('open');
   document.getElementById('food-search').value='';
   if(source==='local'){
@@ -1442,8 +1434,9 @@ function renderHistorico(){
       <div class="dt-wrap"><div class="dt-hist dt-head">
         <span>Data</span><span>% Alvo</span><span class="dt-ra">Kcal</span>
         <span class="dt-ra">P</span><span class="dt-ra">G</span><span class="dt-ra">H</span><span></span>
-      </div></div>
+      </div>
       ${rows}
+      </div>
     </div>`;
 }
 
