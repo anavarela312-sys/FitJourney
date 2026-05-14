@@ -126,6 +126,16 @@
   .dt-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;}
   .dt-ra{text-align:right;}
 
+  /* ── Weight history cards ── */
+  .weight-hist-card{padding:10px 0;border-bottom:1px solid var(--border);}
+  .weight-hist-card:last-child{border-bottom:none;}
+  .weight-hist-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .weight-hist-date{font-size:12px;color:var(--text-soft);min-width:36px;flex-shrink:0;}
+  .weight-hist-metrics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .whm{background:var(--bg);border-radius:8px;padding:5px 9px;min-width:54px;}
+  .whm-val{font-size:12px;font-weight:600;line-height:1.2;}
+  .whm-lbl{font-size:10px;color:var(--text-soft);margin-top:2px;}
+
   /* ── Food search ── */
   .food-search-wrap{position:relative;}
   .food-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:2px solid var(--border);border-radius:12px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:none;}
@@ -490,8 +500,8 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const TARGETS={
-  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25},
-  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15}
+  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25,goalMuscle:46,goalVisceral:7,goalWater:53,goalBmi:23},
+  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15,goalMuscle:52,goalVisceral:7,goalWater:55,goalBmi:24}
 };
 
 let currentUser='ana';
@@ -1179,18 +1189,37 @@ function renderPeso(){
   </div>`).join('');
 
   const hasFat=weights.some(w=>w.fat_pct);
-  const histRows=[...weights].reverse().slice(0,10).map(w=>`
-    <div class="dt-weights dt-row">
-      <div class="dt-muted">${formatDate(w.date)}</div>
-      <div class="dt-bold">${round2(w.weight)}<span style="font-size:10px;font-weight:400;color:var(--text-soft)"> kg</span></div>
-      <div class="dt-muted dt-ra">${w.fat_pct?round1(w.fat_pct)+'%':'—'}</div>
-      <div class="dt-muted dt-ra">${w.muscle?round1(w.muscle)+'kg':'—'}</div>
-      <div class="dt-muted">${[w.bmi?'IMC '+round1(w.bmi):'',w.water?round1(w.water)+'%H₂O':''].filter(Boolean).join(' · ')||'—'}</div>
-      <div class="action-btns">
-        <button data-action="edit-weight" data-id="${eid(w.id)}" class="icon-btn">✏️</button>
-        <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn">🗑️</button>
+  const reversedW=[...weights].reverse().slice(0,10);
+  const wTrend=(cur,prv,goodDir)=>{
+    if(prv==null||cur==null||Math.abs(cur-prv)<0.05)return'';
+    const down=cur<prv;
+    const good=goodDir==='down'?down:!down;
+    return`<span style="color:${good?'var(--green)':'var(--red)'};font-weight:700;margin-left:3px">${down?'↓':'↑'}</span>`;
+  };
+  const histRows=reversedW.map((w,i)=>{
+    const p=reversedW[i+1]||null;
+    const wDiff=p?round2(w.weight-p.weight):null;
+    const wArrow=wDiff!=null?`<span style="color:${wDiff<=0?'var(--green)':'var(--red)'};font-size:11px;font-weight:600;margin-left:6px">${wDiff>0?'+':''}${wDiff}kg</span>`:'';
+    const chips=[
+      w.fat_pct?{v:round1(w.fat_pct)+'%',l:'Gordura',t:wTrend(w.fat_pct,p?.fat_pct,'down')}:null,
+      w.muscle?{v:round1(w.muscle)+'kg',l:'Músculo',t:wTrend(w.muscle,p?.muscle,'up')}:null,
+      w.visceral?{v:round1(w.visceral),l:'Visceral',t:wTrend(w.visceral,p?.visceral,'down')}:null,
+      w.water?{v:round1(w.water)+'%',l:'Água',t:wTrend(w.water,p?.water,'up')}:null,
+      w.bmi?{v:round1(w.bmi),l:'IMC',t:wTrend(w.bmi,p?.bmi,'down')}:null,
+    ].filter(Boolean);
+    const metricsHtml=chips.length?`<div class="weight-hist-metrics">${chips.map(c=>`<div class="whm"><div class="whm-val">${c.v}${c.t}</div><div class="whm-lbl">${c.l}</div></div>`).join('')}</div>`:'';
+    return`<div class="weight-hist-card">
+      <div class="weight-hist-top">
+        <div class="weight-hist-date">${formatDate(w.date)}</div>
+        <div style="flex:1"><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px">${round2(w.weight)}</span><span style="font-size:11px;color:var(--text-soft)"> kg</span>${wArrow}</div>
+        <div class="action-btns">
+          <button data-action="edit-weight" data-id="${eid(w.id)}" class="icon-btn">✏️</button>
+          <button data-action="delete-weight" data-id="${eid(w.id)}" class="icon-btn">🗑️</button>
+        </div>
       </div>
-    </div>`).join('');
+      ${metricsHtml}
+    </div>`;
+  }).join('');
   const metricsHtml=latest.fat_pct?`<div class="card"><div class="card-title">📊 Composição corporal</div><div class="metrics-grid">
     ${latest.fat_pct?`<div class="metric-item"><div class="metric-name">% Gordura</div><div class="metric-val">${round1(latest.fat_pct)}<span>%</span></div></div>`:''}
     ${latest.muscle?`<div class="metric-item"><div class="metric-name">Músculo</div><div class="metric-val">${round1(latest.muscle)}<span>kg</span></div></div>`:''}
@@ -1231,11 +1260,7 @@ function renderPeso(){
     ${buildBodyChartCard(weights)}
     ${metricsHtml}
     <div class="card"><div class="card-title">Histórico de pesagens</div>
-      <div class="dt-wrap">
-        <div class="dt-weights dt-head">
-          <span>Data</span><span>Peso</span><span class="dt-ra">Gord%</span><span class="dt-ra">Músculo</span><span>Outros</span><span></span>
-        </div>${histRows}
-      </div>
+      ${histRows}
     </div>`;
 
   const chartLabels=weights.map(w=>formatDate(w.date));
@@ -1300,10 +1325,10 @@ function toggleFatLine(){
 
 const BODY_METRICS=[
   {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down', goalKey:'goalFat'},
-  {key:'muscle',   label:'Músculo',    unit:'kg', color:'#5A9E6F', good:'up'},
-  {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down'},
-  {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up'},
-  {key:'bmi',      label:'IMC',        unit:'',   color:'#9B7BC2', good:'down'},
+  {key:'muscle',   label:'Músculo',    unit:'kg', color:'#5A9E6F', good:'up',   goalKey:'goalMuscle'},
+  {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down', goalKey:'goalVisceral'},
+  {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up',   goalKey:'goalWater'},
+  {key:'bmi',      label:'IMC',        unit:'',   color:'#9B7BC2', good:'down', goalKey:'goalBmi'},
 ];
 
 function buildBodyChartCard(weights){
