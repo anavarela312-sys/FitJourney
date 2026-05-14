@@ -492,6 +492,18 @@
   </div>
 </div>
 
+<!-- ── Confirm delete modal ── -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box" style="max-width:320px">
+    <div style="font-size:28px;text-align:center;margin-bottom:10px">🗑️</div>
+    <div id="confirm-msg" style="font-size:14px;text-align:center;margin-bottom:20px;color:var(--text-soft)"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" onclick="closeConfirmModal()" style="flex:1">Cancelar</button>
+      <button class="btn" id="confirm-ok-btn" onclick="execConfirm()" style="flex:1;background:var(--red);color:#fff">Apagar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -564,7 +576,24 @@ document.addEventListener('click',function(e){
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
 document.getElementById('food-modal').addEventListener('click',function(e){if(e.target===this)closeFoodModal();});
 document.getElementById('qty-modal').addEventListener('click',function(e){if(e.target===this)closeQtyModal();});
+document.getElementById('confirm-modal').addEventListener('click',function(e){if(e.target===this)closeConfirmModal();});
 document.addEventListener('pointerdown',function(e){if(!e.target.closest('.food-search-wrap'))document.getElementById('food-dropdown').classList.remove('open');});
+
+let _confirmCb=null;
+function showConfirm(msg,onOk){
+  document.getElementById('confirm-msg').textContent=msg;
+  _confirmCb=onOk;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+function closeConfirmModal(){
+  document.getElementById('confirm-modal').classList.remove('show');
+  _confirmCb=null;
+}
+function execConfirm(){
+  const cb=_confirmCb;
+  closeConfirmModal();
+  if(cb)cb();
+}
 
 // ── Load ──
 async function loadAll(){
@@ -897,7 +926,7 @@ async function deleteMealDirect(id,date){
 }
 
 function confirmDeleteMeal(id,date){
-  if(confirm('Apagar esta refeição?'))deleteMealDirect(id,date);
+  showConfirm('Apagar esta refeição?',()=>deleteMealDirect(id,date));
 }
 
 async function addWeight(){
@@ -931,7 +960,7 @@ async function deleteWeightDirect(id){
 }
 
 function confirmDeleteWeight(id){
-  if(confirm('Apagar esta pesagem?'))deleteWeightDirect(id);
+  showConfirm('Apagar esta pesagem?',()=>deleteWeightDirect(id));
 }
 
 // ── Foods CRUD ──
@@ -1010,7 +1039,9 @@ async function saveFoodForm(){
 }
 
 async function confirmDeleteFood(id){
-  if(!confirm('Apagar este alimento?'))return;
+  showConfirm('Apagar este alimento?',()=>_doDeleteFood(id));
+}
+async function _doDeleteFood(id){
   setSyncStatus('loading');
   const{error}=await supa.from('foods').delete().eq('id',id);
   if(error){setSyncStatus('error');showToast('❌ Erro ao apagar');return;}
@@ -1600,9 +1631,9 @@ const ACHIEVEMENTS=[
   {id:'streak_7',icon:'⚡',name:'7 dias seguidos',check:(u)=>cache[u].streak>=7},
   {id:'streak_14',icon:'💪',name:'14 dias seguidos',check:(u)=>cache[u].streak>=14},
   {id:'protein',icon:'🥩',name:'Rei da proteína',check:(u)=>{const t=getTotals(u,today());return t.prot>=TARGETS[u].prot;}},
-  {id:'1kg',icon:'🎯',name:'1kg perdido',check:(u)=>{const w=cache[u].weights;return w.length>=2&&TARGETS[u].startWeight-w[w.length-1].weight>=1;}},
-  {id:'3kg',icon:'🏅',name:'3kg perdidos',check:(u)=>{const w=cache[u].weights;return w.length>=2&&TARGETS[u].startWeight-w[w.length-1].weight>=3;}},
-  {id:'5kg',icon:'🏆',name:'Meta 1 atingida!',check:(u)=>{const w=cache[u].weights;return w.length>=2&&TARGETS[u].startWeight-w[w.length-1].weight>=5;}},
+  {id:'p25',icon:'🎯',name:'25% do objetivo',check:(u)=>{const w=cache[u].weights,t=TARGETS[u];return w.length>=2&&(t.startWeight-w[w.length-1].weight)>=(t.startWeight-t.goalWeight)*0.25;}},
+  {id:'p50',icon:'🏅',name:'Meio caminho!',check:(u)=>{const w=cache[u].weights,t=TARGETS[u];return w.length>=2&&(t.startWeight-w[w.length-1].weight)>=(t.startWeight-t.goalWeight)*0.5;}},
+  {id:'p100',icon:'🏆',name:'Meta atingida!',check:(u)=>{const w=cache[u].weights,t=TARGETS[u];return w.length>=2&&(t.startWeight-w[w.length-1].weight)>=(t.startWeight-t.goalWeight);}},
   {id:'week',icon:'📅',name:'7 dias registados',check:(u)=>Object.keys(cache[u].meals).length>=7},
 ];
 
@@ -1853,8 +1884,10 @@ async function saveWalkWorkout(){
   setSyncStatus('ok');showToast('🚶 Caminhada registada!');renderTreino();
 }
 
-async function confirmDeleteWorkout(id){
-  if(!confirm('Apagar este treino?'))return;
+function confirmDeleteWorkout(id){
+  showConfirm('Apagar este treino?',()=>_doDeleteWorkout(id));
+}
+async function _doDeleteWorkout(id){
   setSyncStatus('loading');
   const{error}=await supa.from('workout_sessions').delete().eq('id',id);
   if(error){setSyncStatus('error');showToast('❌ Erro ao apagar');return;}
