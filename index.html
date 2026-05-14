@@ -1034,46 +1034,91 @@ function openEditFood(id){
   document.getElementById('food-modal').classList.add('show');
 }
 
+let foodFormMode='100g';
+
 function renderFoodForm(food){
+  const isNew=!food.id;
+  foodFormMode='100g';
+  const toggleHtml=isNew?`
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="ff-mode-100g" onclick="setFoodFormMode('100g')"
+        style="flex:1;padding:8px;border:2px solid var(--text);border-radius:10px;background:var(--text);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Por 100g</button>
+      <button id="ff-mode-unit" onclick="setFoodFormMode('unit')"
+        style="flex:1;padding:8px;border:2px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text-soft);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Por unidade</button>
+    </div>
+    <div id="ff-unit-wrap" class="form-group" style="display:none">
+      <label class="form-label">Peso de 1 unidade (g) *</label>
+      <input type="number" class="form-input" id="ff-unit-weight" placeholder="ex: 25" min="0.1" step="0.1">
+    </div>`:'';
+  const macroLabel=isNew
+    ?`<div id="ff-macro-label" style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--text-soft)">Valores por 100g</div>`
+    :`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--text-soft)">Valores por 100g</div>`;
   document.getElementById('food-modal-body').innerHTML=`
     <div class="form-group"><label class="form-label">Nome *</label>
       <input type="text" class="form-input" id="ff-name" value="${(food.name||'').replace(/"/g,'&quot;')}" placeholder="ex: Aveia"></div>
     <div class="form-group"><label class="form-label">Marca / detalhe</label>
       <input type="text" class="form-input" id="ff-brand" value="${(food.brand||'').replace(/"/g,'&quot;')}" placeholder="ex: Pingo Doce"></div>
-    <div id="ff-serving-label" style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--text-soft)">Valores por ${food.default_serving_g||100}g</div>
+    ${toggleHtml}
+    ${macroLabel}
     <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">Calorias (kcal)</label>
+      <div class="form-group" style="margin:0"><label class="form-label" id="ff-lbl-kcal">Calorias (kcal)</label>
         <input type="number" class="form-input" id="ff-kcal" value="${food.kcal_per_100g||''}" placeholder="0"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label>
+      <div class="form-group" style="margin:0"><label class="form-label" id="ff-lbl-prot">Proteína (g)</label>
         <input type="number" class="form-input" id="ff-prot" value="${food.protein_per_100g||''}" placeholder="0"></div>
     </div>
     <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label>
+      <div class="form-group" style="margin:0"><label class="form-label" id="ff-lbl-fat">Gordura (g)</label>
         <input type="number" class="form-input" id="ff-fat" value="${food.fat_per_100g||''}" placeholder="0"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label>
+      <div class="form-group" style="margin:0"><label class="form-label" id="ff-lbl-carbs">Hidratos (g)</label>
         <input type="number" class="form-input" id="ff-carbs" value="${food.carbs_per_100g||''}" placeholder="0"></div>
     </div>
-    <div class="form-group">
+    <div id="ff-serving-wrap" class="form-group">
       <label class="form-label">Dose habitual (g) <span style="font-weight:400;color:var(--text-soft)">— aparece por defeito ao selecionar</span></label>
-      <input type="number" class="form-input" id="ff-serving" value="${food.default_serving_g||100}" placeholder="100" min="1"
-        oninput="document.getElementById('ff-serving-label').textContent='Valores por '+(this.value||100)+'g'">
+      <input type="number" class="form-input" id="ff-serving" value="${food.default_serving_g||100}" placeholder="100" min="1">
     </div>
     <button class="btn btn-dark" onclick="saveFoodForm()">Guardar alimento</button>`;
+}
+
+function setFoodFormMode(mode){
+  foodFormMode=mode;
+  const isUnit=mode==='unit';
+  const btn100=document.getElementById('ff-mode-100g');
+  const btnU=document.getElementById('ff-mode-unit');
+  btn100.style.cssText=`flex:1;padding:8px;border:2px solid ${isUnit?'var(--border)':'var(--text)'};border-radius:10px;background:${isUnit?'var(--bg)':'var(--text)'};color:${isUnit?'var(--text-soft)':'#fff'};font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer`;
+  btnU.style.cssText=`flex:1;padding:8px;border:2px solid ${isUnit?'var(--text)':'var(--border)'};border-radius:10px;background:${isUnit?'var(--text)':'var(--bg)'};color:${isUnit?'#fff':'var(--text-soft)'};font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer`;
+  document.getElementById('ff-unit-wrap').style.display=isUnit?'':'none';
+  document.getElementById('ff-serving-wrap').style.display=isUnit?'none':'';
+  document.getElementById('ff-macro-label').textContent=isUnit?'Valores por 1 unidade':'Valores por 100g';
+  ['ff-kcal','ff-prot','ff-fat','ff-carbs'].forEach(id=>document.getElementById(id).value='');
+  if(isUnit)document.getElementById('ff-unit-weight').focus();
 }
 
 async function saveFoodForm(){
   const name=document.getElementById('ff-name').value.trim();
   if(!name){showToast('⚠️ O nome é obrigatório');return;}
-  const kcal=parseFloat(document.getElementById('ff-kcal').value)||0;
-  if(!kcal){showToast('⚠️ Insere pelo menos as calorias');return;}
+  const kcalRaw=parseFloat(document.getElementById('ff-kcal').value)||0;
+  if(!kcalRaw){showToast('⚠️ Insere pelo menos as calorias');return;}
+  let kcal_per_100g,prot_per_100g,fat_per_100g,carbs_per_100g,default_serving_g;
+  if(foodFormMode==='unit'){
+    const unitW=parseFloat(document.getElementById('ff-unit-weight').value)||0;
+    if(!unitW){showToast('⚠️ Indica o peso de 1 unidade');return;}
+    const f=100/unitW;
+    kcal_per_100g=round2(kcalRaw*f);
+    prot_per_100g=round2((parseFloat(document.getElementById('ff-prot').value)||0)*f);
+    fat_per_100g=round2((parseFloat(document.getElementById('ff-fat').value)||0)*f);
+    carbs_per_100g=round2((parseFloat(document.getElementById('ff-carbs').value)||0)*f);
+    default_serving_g=unitW;
+  } else {
+    kcal_per_100g=kcalRaw;
+    prot_per_100g=parseFloat(document.getElementById('ff-prot').value)||0;
+    fat_per_100g=parseFloat(document.getElementById('ff-fat').value)||0;
+    carbs_per_100g=parseFloat(document.getElementById('ff-carbs').value)||0;
+    default_serving_g=parseFloat(document.getElementById('ff-serving').value)||100;
+  }
   const row={
     name,
     brand:document.getElementById('ff-brand').value.trim(),
-    kcal_per_100g:kcal,
-    protein_per_100g:parseFloat(document.getElementById('ff-prot').value)||0,
-    fat_per_100g:parseFloat(document.getElementById('ff-fat').value)||0,
-    carbs_per_100g:parseFloat(document.getElementById('ff-carbs').value)||0,
-    default_serving_g:parseFloat(document.getElementById('ff-serving').value)||100
+    kcal_per_100g,protein_per_100g:prot_per_100g,fat_per_100g,carbs_per_100g,default_serving_g
   };
   setSyncStatus('loading');
   if(editingFoodId){
