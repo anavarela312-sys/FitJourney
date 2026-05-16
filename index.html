@@ -813,8 +813,6 @@ function openQtyModal(food){
     <button class="btn btn-dark" onclick="confirmQty()">Adicionar à refeição</button>`;
   document.getElementById('qty-modal').classList.add('show');
   updateQtyPreview();
-  document.getElementById('qty-input').focus();
-  document.getElementById('qty-input').select();
 }
 
 function setQtyMode(mode){
@@ -842,7 +840,7 @@ function updateQtyPreview(){
     qty_g=parseFloat(document.getElementById('qty-input')?.value)||0;
     label=`${qty_g}g`;
   }
-  const factor=qty_g/100;
+  const factor=qty_g/(food.default_serving_g||100);
   const kcal=round1(food.kcal_per_100g*factor);
   const prot=round1(food.protein_per_100g*factor);
   const fat=round1(food.fat_per_100g*factor);
@@ -865,7 +863,7 @@ async function confirmQty(){
     if(qty_g<=0){showToast('⚠️ Insere uma quantidade válida');return;}
     qtyLabel=`${qty_g}g`;
   }
-  const factor=qty_g/100;
+  const factor=qty_g/(pendingFood.default_serving_g||100);
 
   if(food.source==='off'){
     const saveDb=document.getElementById('qty-save-db')?.checked;
@@ -1559,13 +1557,64 @@ function initBodyChart(metric){
 }
 
 // ── RENDER HISTÓRICO ──
+function weekMondayStr(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  const day=d.getDay()||7;
+  d.setDate(d.getDate()-(day-1));
+  return d.toISOString().slice(0,10);
+}
+
 function renderHistorico(){
   const meals=cache[currentUser].meals;
   const dates=Object.keys(meals).sort().reverse().slice(0,30);
   const tgt=TARGETS[currentUser];
   if(!dates.length){document.getElementById('historico-display').innerHTML=`<div class="card"><div class="empty-state"><div class="emoji">📅</div>Sem histórico</div></div>`;return;}
-  const w7=dates.slice(0,7);
-  const avg=w7.length?Math.round(w7.reduce((s,d)=>s+getTotals(currentUser,d).kcal,0)/w7.length):0;
+
+  // ── Weekly summaries ──
+  const allWeights=cache[currentUser].weights||[];
+  const weekMap={};
+  for(const d of Object.keys(meals).sort()){
+    const mon=weekMondayStr(d);
+    if(!weekMap[mon])weekMap[mon]={dates:[],kcalTotal:0};
+    weekMap[mon].dates.push(d);
+    weekMap[mon].kcalTotal+=getTotals(currentUser,d).kcal;
+  }
+  const weekKeys=Object.keys(weekMap).sort().reverse().slice(0,6);
+  const weekCards=weekKeys.map(mon=>{
+    const wk=weekMap[mon];
+    const sun=new Date(mon+'T12:00:00');sun.setDate(sun.getDate()+6);
+    const sunStr=sun.toISOString().slice(0,10);
+    const avgKcal=Math.round(wk.kcalTotal/wk.dates.length);
+    const days=wk.dates.length;
+    const label=`${formatDate(mon)} – ${formatDate(sunStr)}`;
+    // find weights in this week range
+    const wInWeek=allWeights.filter(w=>w.date>=mon&&w.date<=sunStr);
+    let weightHtml='';
+    if(wInWeek.length>=2){
+      const first=wInWeek[0].weight,last=wInWeek[wInWeek.length-1].weight;
+      const delta=round1(last-first);
+      const arrow=delta<0?`<span style="color:var(--green)">↓ ${delta} kg</span>`
+        :delta>0?`<span style="color:var(--red)">↑ +${delta} kg</span>`
+        :`<span style="color:var(--text-soft)">= sem alteração</span>`;
+      weightHtml=`<div style="font-size:12px;color:var(--text-soft);margin-top:4px">Peso: ${round1(first)} → ${round1(last)} kg &nbsp; ${arrow}</div>`;
+    } else if(wInWeek.length===1){
+      weightHtml=`<div style="font-size:12px;color:var(--text-soft);margin-top:4px">Peso registado: ${round1(wInWeek[0].weight)} kg</div>`;
+    }
+    const ok=avgKcal<=tgt.kcal*1.05;
+    const badge=ok?`<span class="badge badge-green" style="font-size:11px;padding:4px 9px">✅ No alvo</span>`
+      :`<span class="badge badge-red" style="font-size:11px;padding:4px 9px">↑ +${avgKcal-tgt.kcal} kcal</span>`;
+    return`<div style="border-bottom:1px solid var(--border);padding:10px 0;last-child:border:none">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div style="font-size:13px;font-weight:600">${label}</div>
+          <div style="font-size:12px;color:var(--text-soft);margin-top:2px">${days} dia${days!==1?'s':''} registado${days!==1?'s':''} · média <strong style="color:var(--text)">${avgKcal} kcal/dia</strong></div>
+          ${weightHtml}
+        </div>
+        ${badge}
+      </div>
+    </div>`;
+  }).join('');
+
   const rows=dates.map(d=>{
     const t=getTotals(currentUser,d);
     const ok=t.kcal<=tgt.kcal*1.05;
@@ -1598,11 +1647,10 @@ function renderHistorico(){
     </div>`;
   }).join('');
   document.getElementById('historico-display').innerHTML=`
-    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div><div class="card-title" style="margin:0">Média semanal</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-top:3px">${avg} <span style="font-size:13px;font-weight:400;color:var(--text-soft)">kcal/dia</span></div></div>
-      <span class="badge ${avg<=tgt.kcal?'badge-green':'badge-red'}" style="font-size:12px;padding:7px 12px">${avg<=tgt.kcal?'✅ No alvo':'↑ +'+(avg-tgt.kcal)+' kcal'}</span>
-    </div></div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">Avaliação semanal</div>
+      ${weekCards||'<div style="font-size:13px;color:var(--text-soft)">Ainda sem dados suficientes</div>'}
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div class="card-title" style="margin:0">Últimos 30 dias</div>
