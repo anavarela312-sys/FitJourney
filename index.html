@@ -115,6 +115,14 @@
   .action-btns{display:flex;gap:2px;justify-content:flex-end;flex-shrink:0;}
   .dt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .dt-meals{display:grid;grid-template-columns:40px 78px minmax(0,1fr) 52px 34px 34px 34px 68px;gap:5px;align-items:center;min-width:390px;}
+  .meal-card{padding:9px 0;border-bottom:1px solid var(--border);}
+  .meal-card:last-child{border-bottom:none;}
+  .meal-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px;}
+  .meal-card-desc{font-size:13px;font-weight:600;flex:1;line-height:1.35;word-break:break-word;}
+  .meal-card-kcal{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;flex-shrink:0;white-space:nowrap;}
+  .meal-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;}
+  .meal-card-meta{font-size:11px;color:var(--text-soft);white-space:nowrap;}
+  .meal-card-macros{font-size:11px;color:var(--text-soft);}
   .dt-hist{display:grid;grid-template-columns:54px minmax(0,1fr) 52px 36px 36px 36px 36px;gap:5px;align-items:center;min-width:320px;}
   .dt-weights{display:grid;grid-template-columns:54px 62px 42px 46px minmax(0,1fr) 68px;gap:5px;align-items:center;min-width:330px;}
   .dt-head{padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:2px;}
@@ -1324,17 +1332,20 @@ function renderAll(){renderHoje();renderPeso();renderHistorico();renderConquista
 // ── RENDER HOJE ──
 function mealRowHtml(m,date){
   const sid=eid(m.id);
-  return`<div class="dt-meals dt-row">
-    <div class="dt-muted">${m.time||'—'}</div>
-    <div class="dt-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.type}</div>
-    <div class="dt-clip">${m.description||'—'}</div>
-    <div class="dt-bold dt-ra">${m.kcal}</div>
-    <div class="dt-muted dt-ra">${m.protein}g</div>
-    <div class="dt-muted dt-ra">${m.fat}g</div>
-    <div class="dt-muted dt-ra">${m.carbs}g</div>
-    <div class="action-btns">
-      <button data-action="edit-meal" data-id="${sid}" data-date="${date}" class="icon-btn" title="Editar">✏️</button>
-      <button data-action="delete-meal" data-id="${sid}" data-date="${date}" class="icon-btn" title="Apagar">🗑️</button>
+  return`<div class="meal-card">
+    <div class="meal-card-top">
+      <div class="meal-card-desc">${m.description||'—'}</div>
+      <div class="meal-card-kcal">${m.kcal} kcal</div>
+    </div>
+    <div class="meal-card-bottom">
+      <div class="meal-card-meta">${m.time||'—'} · ${m.type}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="meal-card-macros">P ${m.protein}g · G ${m.fat}g · H ${m.carbs}g</div>
+        <div class="action-btns" style="margin-left:4px">
+          <button data-action="edit-meal" data-id="${sid}" data-date="${date}" class="icon-btn" title="Editar">✏️</button>
+          <button data-action="delete-meal" data-id="${sid}" data-date="${date}" class="icon-btn" title="Apagar">🗑️</button>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -1349,14 +1360,7 @@ function renderHoje(){
   const sc=t.kcal>tgt.kcal?'var(--red)':color;
   const mealsHtml=meals.length===0
     ?`<div class="empty-state"><div class="emoji">🍽️</div>Nenhuma refeição hoje</div>`
-    :`<div class="dt-wrap">
-        <div class="dt-meals dt-head">
-          <span>Hora</span><span>Tipo</span><span>Descrição</span>
-          <span class="dt-ra">Kcal</span><span class="dt-ra">P</span><span class="dt-ra">G</span><span class="dt-ra">H</span>
-          <span></span>
-        </div>
-        ${meals.map(m=>mealRowHtml(m,today())).join('')}
-      </div>`;
+    :`<div>${meals.map(m=>mealRowHtml(m,today())).join('')}</div>`;
   document.getElementById('hoje-display').innerHTML=`
     <div class="card"><div class="card-title">Resumo · ${formatDate(today())}</div>
       <div class="kcal-display">
@@ -1724,14 +1728,8 @@ function renderHistorico(){
     const pctDay=Math.min(100,Math.round(t.kcal/tgt.kcal*100));
     const expanded=expandedDays.has(d);
     const dayMeals=cache[currentUser].meals[d]||[];
-    const mealDetail=expanded?`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:6px">
-      <div class="dt-wrap">
-        <div class="dt-meals dt-head">
-          <span>Hora</span><span>Tipo</span><span>Descrição</span>
-          <span class="dt-ra">Kcal</span><span class="dt-ra">P</span><span class="dt-ra">G</span><span class="dt-ra">H</span><span></span>
-        </div>
-        ${dayMeals.map(m=>mealRowHtml(m,d)).join('')}
-      </div>
+    const mealDetail=expanded?`<div style="background:var(--bg);border-radius:10px;padding:4px 10px;margin-top:6px">
+      ${dayMeals.map(m=>mealRowHtml(m,d)).join('')}
     </div>`:'';
     return`<div style="border-bottom:1px solid var(--border);padding:8px 0">
       <div class="dt-hist dt-row" style="border:none;padding:0;cursor:pointer" data-action="toggle-day" data-date="${d}">
