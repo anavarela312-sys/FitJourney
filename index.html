@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
@@ -245,9 +245,12 @@
 
 <div class="header">
   <h1>Fit<span>Journey</span></h1>
-  <div class="sync-indicator">
-    <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-label">A ligar...</span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">A ligar...</span>
+    </div>
+    <button onclick="openConfig()" style="background:none;border:none;cursor:pointer;font-size:18px;line-height:1;padding:4px;color:#aaa;transition:color 0.2s" title="Configurações">⚙️</button>
   </div>
 </div>
 
@@ -504,6 +507,17 @@
   </div>
 </div>
 
+<!-- ── Config modal ── -->
+<div class="modal-overlay" id="config-modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <div class="card-title" style="margin:0">⚙️ Configurações de macros</div>
+      <button class="modal-close" onclick="closeConfig()">✕</button>
+    </div>
+    <div id="config-modal-body"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -511,10 +525,11 @@ const SUPA_URL='https://aupkevwdnpiczwcyaygr.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1cGtldndkbnBpY3p3Y3lheWdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MzM3MTIsImV4cCI6MjA5MzQwOTcxMn0.sJmWNHTZzyf5B8uGnVZtvGr1yWHPYgiVw8pCbKjUGBg';
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-const TARGETS={
+let TARGETS={
   ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25,goalMuscle:46,goalVisceral:7,goalWater:53,goalBmi:23},
   joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15,goalMuscle:52,goalVisceral:7,goalWater:55,goalBmi:24}
 };
+(function(){try{const s=localStorage.getItem('fj_macros');if(s){const m=JSON.parse(s);['ana','joao'].forEach(u=>{if(m[u])Object.assign(TARGETS[u],m[u]);});}}catch(_){}})();
 
 let currentUser='ana';
 let cache={ana:{meals:{},weights:[],streak:0,lastLog:null},joao:{meals:{},weights:[],streak:0,lastLog:null}};
@@ -537,6 +552,7 @@ let offLoading=false;
 let lastSearchQuery='';
 let manualFieldsOpen=false;
 
+function norm(s){return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
 function today(){return new Date().toISOString().split('T')[0];}
 function formatDate(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short'});}
 function eid(id){return String(id);}
@@ -579,6 +595,42 @@ document.getElementById('food-modal').addEventListener('click',function(e){if(e.
 document.getElementById('qty-modal').addEventListener('click',function(e){if(e.target===this)closeQtyModal();});
 document.getElementById('confirm-modal').addEventListener('click',function(e){if(e.target===this)closeConfirmModal();});
 document.addEventListener('pointerdown',function(e){if(!e.target.closest('.food-search-wrap'))document.getElementById('food-dropdown').classList.remove('open');});
+
+// ── Config modal ──
+function openConfig(){
+  const body=document.getElementById('config-modal-body');
+  function row(user,label,color){
+    const t=TARGETS[user];
+    return `<div style="margin-bottom:18px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${color};margin-bottom:10px">${label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label class="form-label">Kcal/dia</label><input type="number" class="form-input" id="cfg-${user}-kcal" value="${t.kcal}" min="500" max="5000"></div>
+        <div><label class="form-label">Proteína (g)</label><input type="number" class="form-input" id="cfg-${user}-prot" value="${t.prot}" min="0" max="500"></div>
+        <div><label class="form-label">Gordura (g)</label><input type="number" class="form-input" id="cfg-${user}-fat" value="${t.fat}" min="0" max="500"></div>
+        <div><label class="form-label">Hidratos (g)</label><input type="number" class="form-input" id="cfg-${user}-carbs" value="${t.carbs}" min="0" max="1000"></div>
+      </div>
+    </div>`;
+  }
+  body.innerHTML=row('ana','💗 Ana','var(--ana-deep)')+row('joao','💙 João','var(--joao-deep)')+
+    `<button class="btn btn-dark" style="width:100%" onclick="saveConfig()">Guardar configurações</button>`;
+  document.getElementById('config-modal').classList.add('show');
+}
+function closeConfig(){document.getElementById('config-modal').classList.remove('show');}
+function saveConfig(){
+  const v=(id)=>parseInt(document.getElementById(id).value)||0;
+  ['ana','joao'].forEach(u=>{
+    TARGETS[u].kcal=v(`cfg-${u}-kcal`);
+    TARGETS[u].prot=v(`cfg-${u}-prot`);
+    TARGETS[u].fat=v(`cfg-${u}-fat`);
+    TARGETS[u].carbs=v(`cfg-${u}-carbs`);
+  });
+  try{localStorage.setItem('fj_macros',JSON.stringify({
+    ana:{kcal:TARGETS.ana.kcal,prot:TARGETS.ana.prot,fat:TARGETS.ana.fat,carbs:TARGETS.ana.carbs},
+    joao:{kcal:TARGETS.joao.kcal,prot:TARGETS.joao.prot,fat:TARGETS.joao.fat,carbs:TARGETS.joao.carbs}
+  }));}catch(_){}
+  closeConfig();renderAll();showToast('✅ Configurações guardadas!');
+}
+document.getElementById('config-modal').addEventListener('click',function(e){if(e.target===this)closeConfig();});
 
 let _confirmCb=null;
 function showConfirm(msg,onOk){
@@ -662,7 +714,7 @@ function onFoodSearchInput(){
   if(q.length<1){document.getElementById('food-dropdown').classList.remove('open');return;}
 
   const localMatches=foodsCache.filter(f=>
-    f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+    norm(f.name).includes(norm(q))||norm(f.brand||'').includes(norm(q))
   ).slice(0,6);
 
   if(q.length>=2){
@@ -734,14 +786,14 @@ async function searchOpenFoodFacts(q){
     if(q!==lastSearchQuery)return;
     offResults=products;offLoading=false;
     const localMatches=foodsCache.filter(f=>
-      f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+      norm(f.name).includes(norm(q))||norm(f.brand||'').includes(norm(q))
     ).slice(0,6);
     renderFoodDropdown(localMatches,offResults,false,q);
   }catch(_){
     if(q!==lastSearchQuery)return;
     offLoading=false;offResults=[];
     const localMatches=foodsCache.filter(f=>
-      f.name.toLowerCase().includes(q.toLowerCase())||(f.brand||'').toLowerCase().includes(q.toLowerCase())
+      norm(f.name).includes(norm(q))||norm(f.brand||'').includes(norm(q))
     ).slice(0,6);
     renderFoodDropdown(localMatches,[],false,q);
   }
@@ -1130,9 +1182,16 @@ async function saveFoodForm(){
     if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
     foodsCache.push(data);
   }
+  const wasNew=!editingFoodId;
   foodsCache.sort((a,b)=>a.name.localeCompare(b.name));
-  setSyncStatus('ok');showToast(editingFoodId?'✅ Alimento atualizado!':'✅ Alimento adicionado!');
-  closeFoodModal();renderAlimentos();
+  setSyncStatus('ok');showToast(wasNew?'✅ Alimento adicionado! Já disponível na pesquisa.':'✅ Alimento atualizado!');
+  closeFoodModal();
+  if(wasNew){
+    const tabEl=document.querySelector(".tab[onclick*=\"'hoje'\"]");
+    if(tabEl)showTab('hoje',tabEl);
+  } else {
+    renderAlimentos();
+  }
 }
 
 async function confirmDeleteFood(id){
@@ -1152,8 +1211,8 @@ function closeFoodModal(){
 }
 
 function renderAlimentos(){
-  const q=(document.getElementById('food-list-search')?.value||'').trim().toLowerCase();
-  const list=q?foodsCache.filter(f=>f.name.toLowerCase().includes(q)||(f.brand||'').toLowerCase().includes(q)):foodsCache;
+  const q=(document.getElementById('food-list-search')?.value||'').trim();
+  const list=q?foodsCache.filter(f=>norm(f.name).includes(norm(q))||norm(f.brand||'').includes(norm(q))):foodsCache;
   const el=document.getElementById('alimentos-list');
   if(!el)return;
   if(foodsCache.length===0){
