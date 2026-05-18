@@ -1182,16 +1182,9 @@ async function saveFoodForm(){
     if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
     foodsCache.push(data);
   }
-  const wasNew=!editingFoodId;
   foodsCache.sort((a,b)=>a.name.localeCompare(b.name));
-  setSyncStatus('ok');showToast(wasNew?'✅ Alimento adicionado! Já disponível na pesquisa.':'✅ Alimento atualizado!');
-  closeFoodModal();
-  if(wasNew){
-    const tabEl=document.querySelector(".tab[onclick*=\"'hoje'\"]");
-    if(tabEl)showTab('hoje',tabEl);
-  } else {
-    renderAlimentos();
-  }
+  setSyncStatus('ok');showToast(editingFoodId?'✅ Alimento atualizado!':'✅ Alimento adicionado!');
+  closeFoodModal();renderAlimentos();
 }
 
 async function confirmDeleteFood(id){
