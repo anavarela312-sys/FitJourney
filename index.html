@@ -1170,21 +1170,72 @@ async function saveFoodForm(){
     brand:document.getElementById('ff-brand').value.trim(),
     kcal_per_100g,protein_per_100g:prot_per_100g,fat_per_100g,carbs_per_100g,default_serving_g
   };
+  const oldFood=editingFoodId?foodsCache.find(f=>f.id===editingFoodId):null;
+  const oldName=oldFood?oldFood.name:null;
   setSyncStatus('loading');
+  let recalcCount=0;
   if(editingFoodId){
     const{data,error}=await supa.from('foods').update(row).eq('id',editingFoodId).select().single();
     if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
     const idx=foodsCache.findIndex(f=>f.id===editingFoodId);
     if(idx!==-1)foodsCache[idx]=data;
     else foodsCache.push(data);
+    recalcCount=await recalcMealsForFood(oldName,data);
   } else {
     const{data,error}=await supa.from('foods').insert(row).select().single();
     if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
     foodsCache.push(data);
   }
   foodsCache.sort((a,b)=>a.name.localeCompare(b.name));
-  setSyncStatus('ok');showToast(editingFoodId?'✅ Alimento atualizado!':'✅ Alimento adicionado!');
-  closeFoodModal();renderAlimentos();
+  setSyncStatus('ok');
+  if(editingFoodId){
+    showToast(recalcCount>0
+      ?`✅ Alimento atualizado! ${recalcCount} refeição(ões) recalculadas no histórico.`
+      :'✅ Alimento atualizado!');
+  } else {
+    showToast('✅ Alimento adicionado!');
+  }
+  closeFoodModal();
+  renderAlimentos();
+  if(recalcCount>0)renderAll();
+}
+
+async function recalcMealsForFood(oldName,newFood){
+  if(!oldName)return 0;
+  const{data:meals,error}=await supa.from('meals').select('id,user_id,date,description')
+    .or(`description.ilike.${oldName} (%,description.eq.${oldName}`);
+  if(error||!meals||meals.length===0)return 0;
+
+  function calcFromDesc(desc){
+    const m=desc.match(/\(([^)]+)\)$/);
+    if(!m){
+      // no quantity — use default serving
+      const f=(newFood.default_serving_g||100)/100;
+      return{kcal:Math.round(newFood.kcal_per_100g*f),protein:round1(newFood.protein_per_100g*f),fat:round1(newFood.fat_per_100g*f),carbs:round1(newFood.carbs_per_100g*f)};
+    }
+    const qty=m[1];
+    let qty_g;
+    if(qty.endsWith('g')){qty_g=parseFloat(qty);}
+    else if(qty.endsWith('un.')){qty_g=round1(parseFloat(qty)*(newFood.default_serving_g||100));}
+    else return null;
+    if(!qty_g||qty_g<=0)return null;
+    const f=qty_g/100;
+    return{kcal:Math.round(newFood.kcal_per_100g*f),protein:round1(newFood.protein_per_100g*f),fat:round1(newFood.fat_per_100g*f),carbs:round1(newFood.carbs_per_100g*f)};
+  }
+
+  const updates=meals.map(m=>({meal:m,vals:calcFromDesc(m.description)})).filter(x=>x.vals);
+  if(updates.length===0)return 0;
+
+  await Promise.all(updates.map(({meal,vals})=>supa.from('meals').update(vals).eq('id',meal.id)));
+
+  updates.forEach(({meal,vals})=>{
+    const u=meal.user_id;
+    if(cache[u]&&cache[u].meals[meal.date]){
+      const idx=cache[u].meals[meal.date].findIndex(r=>r.id===meal.id);
+      if(idx!==-1)Object.assign(cache[u].meals[meal.date][idx],vals);
+    }
+  });
+  return updates.length;
 }
 
 async function confirmDeleteFood(id){
