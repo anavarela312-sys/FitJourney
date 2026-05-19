@@ -123,6 +123,7 @@
   .meal-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;}
   .meal-card-meta{font-size:11px;color:var(--text-soft);white-space:nowrap;}
   .meal-card-macros{font-size:11px;color:var(--text-soft);}
+  .meal-group-header{font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-soft);padding:10px 0 4px;}
   .dt-hist{display:grid;grid-template-columns:54px minmax(0,1fr) 52px 36px 36px 36px 36px;gap:5px;align-items:center;min-width:320px;}
   .dt-weights{display:grid;grid-template-columns:54px 62px 42px 46px minmax(0,1fr) 68px;gap:5px;align-items:center;min-width:330px;}
   .dt-head{padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:2px;}
@@ -1338,7 +1339,7 @@ function mealRowHtml(m,date){
       <div class="meal-card-kcal">${m.kcal} kcal</div>
     </div>
     <div class="meal-card-bottom">
-      <div class="meal-card-meta">${m.time||'—'} · ${m.type}</div>
+      <div class="meal-card-meta">${m.time||'—'}</div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="meal-card-macros">P ${m.protein}g · G ${m.fat}g · H ${m.carbs}g</div>
         <div class="action-btns" style="margin-left:4px">
@@ -1348,6 +1349,24 @@ function mealRowHtml(m,date){
       </div>
     </div>
   </div>`;
+}
+
+const MEAL_ORDER=['Pequeno-almoço','Snack manhã','Almoço','Lanche tarde','Jantar','Extra'];
+
+function groupedMealsHtml(meals,date){
+  const grouped={};
+  meals.forEach(m=>{
+    const k=m.type||'Extra';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push(m);
+  });
+  const keys=MEAL_ORDER.filter(k=>grouped[k]);
+  // append any unknown types not in MEAL_ORDER
+  Object.keys(grouped).forEach(k=>{if(!MEAL_ORDER.includes(k))keys.push(k);});
+  return keys.map(k=>`
+    <div class="meal-group-header">${k}</div>
+    ${grouped[k].map(m=>mealRowHtml(m,date)).join('')}
+  `).join('');
 }
 
 function renderHoje(){
@@ -1360,7 +1379,7 @@ function renderHoje(){
   const sc=t.kcal>tgt.kcal?'var(--red)':color;
   const mealsHtml=meals.length===0
     ?`<div class="empty-state"><div class="emoji">🍽️</div>Nenhuma refeição hoje</div>`
-    :`<div>${meals.map(m=>mealRowHtml(m,today())).join('')}</div>`;
+    :`<div>${groupedMealsHtml(meals,today())}</div>`;
   document.getElementById('hoje-display').innerHTML=`
     <div class="card"><div class="card-title">Resumo · ${formatDate(today())}</div>
       <div class="kcal-display">
@@ -1729,7 +1748,7 @@ function renderHistorico(){
     const expanded=expandedDays.has(d);
     const dayMeals=cache[currentUser].meals[d]||[];
     const mealDetail=expanded?`<div style="background:var(--bg);border-radius:10px;padding:4px 10px;margin-top:6px">
-      ${dayMeals.map(m=>mealRowHtml(m,d)).join('')}
+      ${groupedMealsHtml(dayMeals,d)}
     </div>`:'';
     return`<div style="border-bottom:1px solid var(--border);padding:8px 0">
       <div class="dt-hist dt-row" style="border:none;padding:0;cursor:pointer" data-action="toggle-day" data-date="${d}">
