@@ -836,6 +836,7 @@ function onFoodSearchKey(e){
 function pickFood(source,id){
   document.getElementById('food-dropdown').classList.remove('open');
   document.getElementById('food-search').value='';
+  clearTimeout(offSearchTimer);lastSearchQuery='';offResults=[];offLoading=false;
   if(source==='local'){
     const food=foodsCache.find(f=>f.id===id);
     if(!food)return;
