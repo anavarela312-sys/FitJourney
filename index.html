@@ -1489,18 +1489,24 @@ function renderPeso(){
     </div>`;
 
   const chartLabels=weights.map(w=>formatDate(w.date));
+  const chartDates=weights.map(w=>w.date);
   const chartW=weights.map(w=>w.weight);
   const chartF=weights.map(w=>w.fat_pct||null);
-  setTimeout(()=>{initWeightChart(chartLabels,chartW,chartF,colorHex,hasFat,tgt);initBodyChart(activeBodyMetric);},0);
+  setTimeout(()=>{initWeightChart(chartLabels,chartDates,chartW,chartF,colorHex,hasFat,tgt);initBodyChart(activeBodyMetric);},0);
 }
 
-function initWeightChart(labels,wData,fData,color,hasFat,tgt){
+function initWeightChart(labels,dates,wData,fData,color,hasFat,tgt){
   const canvas=document.getElementById('weight-chart');
   if(!canvas)return;
   if(weightChartInst){weightChartInst.destroy();weightChartInst=null;}
   const pts=wData.length>20?2:4;
-  // Scale: always show from goalWeight to startWeight so progress is visible
-  const allW=[...wData,tgt.goalWeight,tgt.startWeight];
+  // Build -0.5kg/week trajectory from first weigh-in date
+  const t0=new Date(dates[0]+'T12:00:00');
+  const trajectory=dates.map(dateStr=>{
+    const weeks=(new Date(dateStr+'T12:00:00')-t0)/(7*86400000);
+    return round2(Math.max(tgt.goalWeight,tgt.startWeight-0.5*weeks));
+  });
+  const allW=[...wData,...trajectory,tgt.goalWeight,tgt.startWeight];
   const minW=Math.min(...allW);
   const maxW=Math.max(...allW);
   const padW=round2((maxW-minW)*0.04)||0.3;
@@ -1509,8 +1515,8 @@ function initWeightChart(labels,wData,fData,color,hasFat,tgt){
     backgroundColor:color+'28',tension:0.35,fill:true,
     pointRadius:pts,pointHoverRadius:6,borderWidth:2,order:0
   },{
-    label:'Meta '+tgt.goalWeight+'kg',
-    data:wData.map(()=>tgt.goalWeight),
+    label:'Ritmo objetivo',
+    data:trajectory,
     borderColor:'rgba(90,158,111,0.7)',borderDash:[6,4],
     borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1
   }];
@@ -1527,7 +1533,7 @@ function initWeightChart(labels,wData,fData,color,hasFat,tgt){
       plugins:{legend:{display:false},tooltip:{
         backgroundColor:'rgba(26,26,26,0.92)',padding:10,
         titleFont:{size:11},bodyFont:{size:11},
-        filter:item=>item.datasetIndex===0||(hasFat&&item.datasetIndex===2)
+        filter:item=>item.datasetIndex===0||item.datasetIndex===1||(hasFat&&item.datasetIndex===2)
       }},
       scales:{
         x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},maxTicksLimit:7,maxRotation:0}},
@@ -1540,7 +1546,7 @@ function initWeightChart(labels,wData,fData,color,hasFat,tgt){
 
 function toggleFatLine(){
   if(!weightChartInst)return;
-  const ds=weightChartInst.data.datasets[1];if(!ds)return;
+  const ds=weightChartInst.data.datasets[2];if(!ds)return;
   ds.hidden=!ds.hidden;
   weightChartInst.options.scales.fat.display=!ds.hidden;
   weightChartInst.update();
