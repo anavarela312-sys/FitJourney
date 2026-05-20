@@ -1506,27 +1506,52 @@ function initWeightChart(labels,dates,wData,fData,color,hasFat,tgt){
     const weeks=(new Date(dateStr+'T12:00:00')-t0)/(7*86400000);
     return round2(Math.max(tgt.goalWeight,tgt.startWeight-0.5*weeks));
   });
-  const allW=[...wData,...trajectory,tgt.goalWeight,tgt.startWeight];
+  // Extend labels/trajectory into the future until goalWeight is reached
+  const extLabels=[...labels];
+  const extTraj=[...trajectory];
+  const extW=[...wData];
+  const extF=[...fData];
+  const weeksToGoal=(tgt.startWeight-tgt.goalWeight)/0.5;
+  const goalDate=new Date(t0.getTime()+weeksToGoal*7*86400000);
+  const lastReal=new Date(dates[dates.length-1]+'T12:00:00');
+  if(goalDate>lastReal){
+    let d=new Date(lastReal);d.setDate(d.getDate()+7);
+    let n=0;
+    while(d<goalDate&&n<78){
+      const s=d.toISOString().slice(0,10);
+      extLabels.push(formatDate(s));
+      const w=(d-t0)/(7*86400000);
+      extTraj.push(round2(Math.max(tgt.goalWeight,tgt.startWeight-0.5*w)));
+      extW.push(null);extF.push(null);
+      d.setDate(d.getDate()+7);n++;
+    }
+    // final point exactly at goal date
+    extLabels.push(formatDate(goalDate.toISOString().slice(0,10))+' (meta)');
+    extTraj.push(tgt.goalWeight);
+    extW.push(null);extF.push(null);
+  }
+  const allW=[...wData,...extTraj,tgt.goalWeight,tgt.startWeight];
   const minW=Math.min(...allW);
   const maxW=Math.max(...allW);
   const padW=round2((maxW-minW)*0.04)||0.3;
   const datasets=[{
-    label:'Peso (kg)',data:wData,borderColor:color,
+    label:'Peso (kg)',data:extW,borderColor:color,
     backgroundColor:color+'28',tension:0.35,fill:true,
-    pointRadius:pts,pointHoverRadius:6,borderWidth:2,order:0
+    pointRadius:pts,pointHoverRadius:6,borderWidth:2,order:0,
+    spanGaps:false
   },{
     label:'Ritmo objetivo',
-    data:trajectory,
+    data:extTraj,
     borderColor:'rgba(90,158,111,0.7)',borderDash:[6,4],
     borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1
   }];
   if(hasFat)datasets.push({
-    label:'Gordura (%)',data:fData,borderColor:'#E8A53A',
+    label:'Gordura (%)',data:extF,borderColor:'#E8A53A',
     backgroundColor:'transparent',tension:0.35,fill:false,
-    pointRadius:pts,borderWidth:2,hidden:true,yAxisID:'fat'
+    pointRadius:pts,borderWidth:2,hidden:true,yAxisID:'fat',spanGaps:false
   });
   weightChartInst=new Chart(canvas,{
-    type:'line',data:{labels,datasets},
+    type:'line',data:{labels:extLabels,datasets},
     options:{
       responsive:true,
       interaction:{mode:'index',intersect:false},
