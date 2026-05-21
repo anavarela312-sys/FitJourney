@@ -1803,6 +1803,10 @@ function openEditMeal(id,date){
   if(!meal){showToast('⚠️ Refeição não encontrada');return;}
   editingMealId=sid;editingWeightId=null;
   const mealTypes=['Pequeno-almoço','Snack manhã','Almoço','Lanche tarde','Jantar','Extra'];
+  // Parse "Nome (125g)" → name + qty
+  const qtyMatch=(meal.description||'').match(/^(.+?)\s*\((\d+(?:\.\d+)?)g\)$/);
+  const foodName=qtyMatch?qtyMatch[1]:(meal.description||'');
+  const origQtyG=qtyMatch?parseFloat(qtyMatch[2]):null;
   document.getElementById('edit-modal-title').textContent='✏️ Editar refeição';
   document.getElementById('edit-modal-body').innerHTML=`
     <div class="form-row" style="margin-bottom:12px">
@@ -1811,28 +1815,37 @@ function openEditMeal(id,date){
         <select class="form-input" id="em-type">${mealTypes.map(t=>`<option${t===meal.type?' selected':''}>${t}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="em-desc" value="${(meal.description||'').replace(/"/g,'&quot;')}"></div>
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">Calorias (kcal)</label><input type="number" class="form-input" id="em-kcal" value="${meal.kcal||0}"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">Proteína (g)</label><input type="number" class="form-input" id="em-prot" value="${meal.protein||0}"></div>
-    </div>
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">Gordura (g)</label><input type="number" class="form-input" id="em-fat" value="${meal.fat||0}"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">Hidratos (g)</label><input type="number" class="form-input" id="em-carbs" value="${meal.carbs||0}"></div>
-    </div>
+    <div class="form-group"><label class="form-label">Alimento</label><input type="text" class="form-input" id="em-desc" value="${foodName.replace(/"/g,'&quot;')}"></div>
+    <div class="form-group"><label class="form-label">Quantidade (g)</label><input type="number" class="form-input" id="em-qty" value="${origQtyG??''}" placeholder="${origQtyG?origQtyG:'—'}" data-orig-qty="${origQtyG??''}"></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:14px">Macros recalculados automaticamente se a quantidade mudar.</div>
     <button class="btn btn-${currentUser}" onclick="saveMealEdit()">Guardar alterações</button>`;
   document.getElementById('edit-modal').classList.add('show');
 }
 
 async function saveMealEdit(){
-  const kcal=parseFloat(document.getElementById('em-kcal').value)||0;
-  if(!kcal){showToast('⚠️ Insere pelo menos as calorias!');return;}
   const newDate=document.getElementById('em-date').value;
+  const foodName=document.getElementById('em-desc').value.trim();
+  const newQtyEl=document.getElementById('em-qty');
+  const newQtyG=newQtyEl?parseFloat(newQtyEl.value)||null:null;
+  const origQtyG=newQtyEl?parseFloat(newQtyEl.dataset.origQty)||null:null;
+  // Find original meal to get stored macros
+  let origMeal=null;
+  for(const d of Object.keys(cache[currentUser].meals)){
+    const f=cache[currentUser].meals[d].find(m=>eid(m.id)===editingMealId);
+    if(f){origMeal=f;break;}
+  }
+  // Recalculate macros by proportional scaling if qty changed and both values known
+  let kcal=origMeal?.kcal||0,protein=origMeal?.protein||0,fat=origMeal?.fat||0,carbs=origMeal?.carbs||0;
+  if(newQtyG&&origQtyG&&origQtyG>0&&newQtyG!==origQtyG){
+    const ratio=newQtyG/origQtyG;
+    kcal=Math.round(kcal*ratio);
+    protein=round1(protein*ratio);
+    fat=round1(fat*ratio);
+    carbs=round1(carbs*ratio);
+  }
+  const description=foodName+(newQtyG?` (${newQtyG}g)`:'');
   const updates={date:newDate,type:document.getElementById('em-type').value,
-    description:document.getElementById('em-desc').value,kcal,
-    protein:parseFloat(document.getElementById('em-prot').value)||0,
-    fat:parseFloat(document.getElementById('em-fat').value)||0,
-    carbs:parseFloat(document.getElementById('em-carbs').value)||0};
+    description,kcal,protein,fat,carbs};
   setSyncStatus('loading');
   const{data,error}=await supa.from('meals').update(updates).eq('id',editingMealId).select().single();
   if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');return;}
