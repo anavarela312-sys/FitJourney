@@ -624,7 +624,12 @@ document.addEventListener('click',function(e){
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
 document.getElementById('food-modal').addEventListener('click',function(e){if(e.target===this)closeFoodModal();});
 document.getElementById('confirm-modal').addEventListener('click',function(e){if(e.target===this)closeConfirmModal();});
-document.addEventListener('pointerdown',function(e){if(!e.target.closest('.food-search-wrap'))document.getElementById('food-dropdown').classList.remove('open');});
+document.addEventListener('pointerdown',function(e){
+  if(!e.target.closest('.food-search-wrap')){
+    document.getElementById('food-dropdown').classList.remove('open');
+    const emDd=document.getElementById('em-food-dropdown');if(emDd)emDd.classList.remove('open');
+  }
+});
 
 // ── Config modal ──
 function openConfig(){
@@ -1793,6 +1798,34 @@ function closeEditModal(){
   editingMealId=null;editingMealDate=null;editingWeightId=null;
 }
 
+function onEditFoodSearch(){
+  const q=document.getElementById('em-food-search').value.trim();
+  document.getElementById('em-food-id').value='';
+  const dd=document.getElementById('em-food-dropdown');
+  if(!dd)return;
+  if(q.length<1){dd.classList.remove('open');return;}
+  const matches=foodsCache.filter(f=>norm(f.name).includes(norm(q))||norm(f.brand||'').includes(norm(q))).slice(0,8);
+  if(!matches.length){
+    dd.innerHTML=`<div class="food-drop-empty">Nenhum alimento encontrado</div>`;
+  } else {
+    dd.innerHTML=matches.map(f=>`<div class="food-drop-item" onpointerdown="pickEditFood('${f.id}')">
+      <div class="food-drop-name">${f.name}${f.brand?` <span style="font-weight:400;color:var(--text-soft)">· ${f.brand}</span>`:''}</div>
+      <div class="food-drop-macros">${f.kcal_per_100g} kcal · ${f.protein_per_100g}g P · ${f.fat_per_100g}g G · ${f.carbs_per_100g}g H <span style="color:var(--text-soft)">(por ${f.default_serving_g||100}g)</span></div>
+    </div>`).join('');
+  }
+  dd.classList.add('open');
+}
+
+function pickEditFood(id){
+  const f=foodsCache.find(x=>eid(x.id)===eid(String(id)));
+  if(!f)return;
+  document.getElementById('em-food-search').value=f.name+(f.brand?` · ${f.brand}`:'');
+  document.getElementById('em-food-id').value=f.id;
+  document.getElementById('em-food-dropdown').classList.remove('open');
+  const qtyEl=document.getElementById('em-qty');
+  if(qtyEl&&!qtyEl.value)qtyEl.value=f.default_serving_g||100;
+}
+
 function openEditMeal(id,date){
   const sid=eid(id);
   let meal=null;
@@ -1815,8 +1848,18 @@ function openEditMeal(id,date){
         <select class="form-input" id="em-type">${mealTypes.map(t=>`<option${t===meal.type?' selected':''}>${t}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">Alimento</label><input type="text" class="form-input" id="em-desc" value="${foodName.replace(/"/g,'&quot;')}"></div>
-    <div class="form-group"><label class="form-label">Quantidade (g)</label><input type="number" class="form-input" id="em-qty" value="${origQtyG??''}" placeholder="${origQtyG?origQtyG:'—'}" data-orig-qty="${origQtyG??''}"></div>
+    <div class="form-group">
+      <label class="form-label">Alimento</label>
+      <div class="food-search-wrap">
+        <input type="text" class="form-input" id="em-food-search" value="${foodName.replace(/"/g,'&quot;')}"
+          placeholder="Pesquisar alimento..." oninput="onEditFoodSearch()" autocomplete="off">
+        <div class="food-dropdown" id="em-food-dropdown"></div>
+      </div>
+    </div>
+    <input type="hidden" id="em-food-id" value="">
+    <div class="form-group"><label class="form-label">Quantidade (g)</label>
+      <input type="number" class="form-input" id="em-qty" value="${origQtyG??''}" placeholder="—" data-orig-qty="${origQtyG??''}">
+    </div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:14px">Macros recalculados automaticamente se a quantidade mudar.</div>
     <button class="btn btn-${currentUser}" onclick="saveMealEdit()">Guardar alterações</button>`;
   document.getElementById('edit-modal').classList.add('show');
@@ -1824,7 +1867,8 @@ function openEditMeal(id,date){
 
 async function saveMealEdit(){
   const newDate=document.getElementById('em-date').value;
-  const foodName=document.getElementById('em-desc').value.trim();
+  const rawFoodName=document.getElementById('em-food-search').value.trim();
+  const selectedFoodId=document.getElementById('em-food-id').value;
   const newQtyEl=document.getElementById('em-qty');
   const newQtyG=newQtyEl?parseFloat(newQtyEl.value)||null:null;
   const origQtyG=newQtyEl?parseFloat(newQtyEl.dataset.origQty)||null:null;
@@ -1834,9 +1878,19 @@ async function saveMealEdit(){
     const f=cache[currentUser].meals[d].find(m=>eid(m.id)===editingMealId);
     if(f){origMeal=f;break;}
   }
-  // Recalculate macros by proportional scaling if qty changed and both values known
   let kcal=origMeal?.kcal||0,protein=origMeal?.protein||0,fat=origMeal?.fat||0,carbs=origMeal?.carbs||0;
-  if(newQtyG&&origQtyG&&origQtyG>0&&newQtyG!==origQtyG){
+  let foodName=rawFoodName;
+  const pickedFood=selectedFoodId?foodsCache.find(f=>eid(f.id)===eid(selectedFoodId)):null;
+  if(pickedFood&&newQtyG){
+    // Recalculate from food database
+    const factor=newQtyG/(pickedFood.default_serving_g||100);
+    kcal=Math.round(pickedFood.kcal_per_100g*factor);
+    protein=round1(pickedFood.protein_per_100g*factor);
+    fat=round1(pickedFood.fat_per_100g*factor);
+    carbs=round1(pickedFood.carbs_per_100g*factor);
+    foodName=pickedFood.name+(pickedFood.brand?` · ${pickedFood.brand}`:'');
+  } else if(newQtyG&&origQtyG&&origQtyG>0&&newQtyG!==origQtyG){
+    // Scale proportionally
     const ratio=newQtyG/origQtyG;
     kcal=Math.round(kcal*ratio);
     protein=round1(protein*ratio);
