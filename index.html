@@ -218,6 +218,13 @@
   .wk-ex-detail{padding:6px 0 0;}
   .wk-ex-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;}
   .wk-ex-row:last-child{border-bottom:none;}
+  .effort-row{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .effort-label{font-size:11px;color:var(--text-soft);font-weight:600;white-space:nowrap;}
+  .effort-btn{border:2px solid var(--border);background:var(--bg);border-radius:10px;padding:5px 8px;font-size:16px;cursor:pointer;line-height:1;transition:border-color .15s,background .15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .effort-btn span{font-size:9px;color:var(--text-soft);font-family:'DM Sans',sans-serif;font-weight:600;white-space:nowrap;}
+  .effort-btn.selected{border-color:var(--text);background:var(--text);color:#fff;}
+  .effort-btn.selected span{color:#fff;}
+  .effort-badge{font-size:11px;font-weight:600;white-space:nowrap;}
 
   /* ── Mobile ── */
   @media(max-width:520px){
@@ -2099,10 +2106,29 @@ function getLastWorkoutForExercise(name){
   return null;
 }
 
+const EFFORT_SCALE=[
+  {emoji:'😴',label:'Muito fácil'},
+  {emoji:'🙂',label:'Fácil'},
+  {emoji:'💪',label:'Moderado'},
+  {emoji:'😤',label:'Difícil'},
+  {emoji:'🔥',label:'Máximo'}
+];
+
+function getExSets(ex){const d=ex.sets_data;if(!d)return[];return Array.isArray(d)?d:(d.sets||[]);}
+function getExEffort(ex){const d=ex.sets_data;if(!d||Array.isArray(d))return null;return d.effort??null;}
+
+function effortBadge(effort){
+  if(effort==null)return'';
+  const e=EFFORT_SCALE[effort-1];
+  return e?` · <span class="effort-badge">${e.emoji} ${e.label}</span>`:'';
+}
+
 function formatLastExercise(ex){
   if(ex.exercise_type==='cardio')return`${ex.duration_min} min cardio`;
-  const sets=ex.sets_data||[];
-  return sets.length?sets.map(s=>`${s.reps}×${s.weight}kg`).join(' · '):'—';
+  const sets=getExSets(ex);
+  const setsStr=sets.length?sets.map(s=>`${s.reps}×${s.weight}kg`).join(' · '):'—';
+  const effort=getExEffort(ex);
+  return setsStr+(effort!=null?`  ${EFFORT_SCALE[effort-1].emoji} ${EFFORT_SCALE[effort-1].label}`:'');
 }
 
 function updateExerciseName(idx,value){
@@ -2125,7 +2151,7 @@ function changeExerciseType(idx,type){
 }
 
 function addGymExercise(){
-  gymSession.push({name:'',type:'machine',sets:[],duration_min:''});
+  gymSession.push({name:'',type:'machine',sets:[],duration_min:'',effort:null});
   renderGymBuilder();
   setTimeout(()=>{const inputs=document.querySelectorAll('.ex-name-input');if(inputs.length)inputs[inputs.length-1].focus();},50);
 }
@@ -2180,7 +2206,13 @@ function renderGymBuilder(){
           <button class="icon-btn" onclick="removeGymSet(${idx},${si})">✕</button>
         </div>`).join('');
       const addBtn=ex.sets.length?`<button class="btn-outline" style="width:auto;padding:6px 14px;font-size:11px;margin-top:6px" onclick="addGymSet(${idx})">+ Série individual</button>`:'';
-      bodyHtml=quickAdd+setRows+addBtn;
+      const effortBtns=`<div class="effort-row">
+        <span class="effort-label">Esforço:</span>
+        ${EFFORT_SCALE.map((e,i)=>`<button type="button" class="effort-btn${ex.effort===(i+1)?' selected':''}" onclick="gymSession[${idx}].effort=${ex.effort===(i+1)?'null':(i+1)};renderGymBuilder()">
+          ${e.emoji}<span>${e.label}</span>
+        </button>`).join('')}
+      </div>`;
+      bodyHtml=quickAdd+setRows+addBtn+effortBtns;
     }else{
       bodyHtml=`<div style="display:flex;align-items:center;gap:8px">
         <input type="number" class="set-inp" style="max-width:80px" value="${ex.duration_min||''}" placeholder="min" min="1"
@@ -2216,7 +2248,7 @@ async function saveGymWorkout(){
   if(error){setSyncStatus('error');showToast('❌ Erro ao guardar');btn.disabled=false;return;}
   const exercises=valid.map((ex,i)=>({
     session_id:session.id,name:ex.name.trim(),exercise_type:ex.type,
-    sets_data:ex.type==='machine'?ex.sets.filter(s=>s.reps||s.weight).map(s=>({reps:parseFloat(s.reps)||0,weight:parseFloat(s.weight)||0})):[],
+    sets_data:ex.type==='machine'?{sets:ex.sets.filter(s=>s.reps||s.weight).map(s=>({reps:parseFloat(s.reps)||0,weight:parseFloat(s.weight)||0})),effort:ex.effort??null}:[],
     duration_min:ex.type==='cardio'?(parseFloat(ex.duration_min)||0):null,
     order_index:i
   }));
@@ -2287,10 +2319,13 @@ function renderTreino(){
     let detail='';
     if(expanded&&isGym){
       detail=`<div class="wk-ex-detail">${(s.workout_exercises||[]).map(ex=>{
+        const sets=getExSets(ex);
+        const effort=getExEffort(ex);
         const right=ex.exercise_type==='cardio'
           ?`${ex.duration_min||0} min cardio`
-          :(ex.sets_data||[]).length?(ex.sets_data.map(st=>`${st.reps}×${st.weight}kg`).join(' · ')):'—';
-        return`<div class="wk-ex-row"><span style="font-weight:500">${ex.name}</span><span style="color:var(--text-soft)">${right}</span></div>`;
+          :sets.length?(sets.map(st=>`${st.reps}×${st.weight}kg`).join(' · ')):'—';
+        const effortHtml=effort!=null?`<span class="effort-badge" style="margin-left:6px">${EFFORT_SCALE[effort-1].emoji} ${EFFORT_SCALE[effort-1].label}</span>`:'';
+        return`<div class="wk-ex-row"><span style="font-weight:500">${ex.name}${effortHtml}</span><span style="color:var(--text-soft)">${right}</span></div>`;
       }).join('')}</div>`;
     }else if(expanded&&!isGym){
       const parts=[];
