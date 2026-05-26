@@ -123,7 +123,12 @@
   .meal-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;}
   .meal-card-meta{font-size:11px;color:var(--text-soft);white-space:nowrap;}
   .meal-card-macros{font-size:11px;color:var(--text-soft);}
-  .meal-group-header{font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-soft);padding:10px 0 4px;}
+  .meal-group-header{font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-soft);padding:10px 0 4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;gap:8px;}
+  .meal-group-header:hover{color:var(--text);}
+  .meal-group-header-left{display:flex;align-items:center;gap:6px;}
+  .meal-group-arrow{font-size:9px;transition:transform .2s;}
+  .meal-group-summary{font-size:11px;font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-soft);white-space:nowrap;}
+  .meal-group-body{overflow:hidden;}
   .dt-hist{display:grid;grid-template-columns:54px minmax(0,1fr) 52px 36px 36px 36px 36px;gap:5px;align-items:center;min-width:320px;}
   .dt-weights{display:grid;grid-template-columns:54px 62px 42px 46px minmax(0,1fr) 68px;gap:5px;align-items:center;min-width:330px;}
   .dt-head{padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:2px;}
@@ -575,6 +580,7 @@ let activeBodyMetric='fat_pct';
 let mealBasket=[];
 let editingMealId=null,editingMealDate=null,editingWeightId=null,editingFoodId=null;
 let expandedDays=new Set();
+let expandedMealGroups=new Set();
 let pendingFood=null;
 let qtyMode='g';
 let offSearchTimer=null;
@@ -618,6 +624,12 @@ document.addEventListener('click',function(e){
     if(expandedDays.has(date))expandedDays.delete(date);
     else expandedDays.add(date);
     renderHistorico();
+  }
+  if(action==='toggle-meal-group'){
+    const grp=btn.dataset.group;
+    if(expandedMealGroups.has(grp))expandedMealGroups.delete(grp);
+    else expandedMealGroups.add(grp);
+    renderHoje();
   }
 });
 
@@ -1337,12 +1349,25 @@ function groupedMealsHtml(meals,date){
     grouped[k].push(m);
   });
   const keys=MEAL_ORDER.filter(k=>grouped[k]);
-  // append any unknown types not in MEAL_ORDER
   Object.keys(grouped).forEach(k=>{if(!MEAL_ORDER.includes(k))keys.push(k);});
-  return keys.map(k=>`
-    <div class="meal-group-header">${k}</div>
-    ${grouped[k].map(m=>mealRowHtml(m,date)).join('')}
-  `).join('');
+  return keys.map(k=>{
+    const items=grouped[k];
+    const tot=items.reduce((a,m)=>({kcal:a.kcal+(m.kcal||0),prot:a.prot+(m.protein||0),fat:a.fat+(m.fat||0),carbs:a.carbs+(m.carbs||0)}),{kcal:0,prot:0,fat:0,carbs:0});
+    const open=expandedMealGroups.has(k);
+    const gid='mg-'+k.replace(/[^a-zA-Z0-9]/g,'-');
+    return`<div>
+      <div class="meal-group-header" data-action="toggle-meal-group" data-group="${k}">
+        <div class="meal-group-header-left">
+          <span class="meal-group-arrow" style="transform:rotate(${open?'0':'180deg'})">▲</span>
+          <span>${k}</span>
+        </div>
+        <span class="meal-group-summary">${tot.kcal} kcal · P${Math.round(tot.prot)}g G${Math.round(tot.fat)}g H${Math.round(tot.carbs)}g</span>
+      </div>
+      <div class="meal-group-body" id="${gid}" style="display:${open?'block':'none'}">
+        ${items.map(m=>mealRowHtml(m,date)).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderHoje(){
