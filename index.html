@@ -403,21 +403,18 @@
       <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="w-date"></div>
       <div class="form-row" style="margin-bottom:12px">
         <div class="form-group" style="margin:0"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" class="form-input" id="w-weight" placeholder="75.9"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">% Gordura</label><input type="number" step="0.1" class="form-input" id="w-fat" placeholder="38.9"></div>
-      </div>
-      <div class="form-row" style="margin-bottom:12px">
         <div class="form-group" style="margin:0"><label class="form-label">% Músculo</label><input type="number" step="0.1" class="form-input" id="w-muscle-pct" placeholder="35.2"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Músculo (kg)</label><input type="number" step="0.1" class="form-input" id="w-muscle" placeholder="43.6"></div>
       </div>
       <div class="form-row" style="margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label class="form-label">IMC</label><input type="number" step="0.1" class="form-input" id="w-bmi" placeholder="28.6"></div>
+        <div class="form-group" style="margin:0"><label class="form-label">% Gordura</label><input type="number" step="0.1" class="form-input" id="w-fat" placeholder="38.9"></div>
         <div class="form-group" style="margin:0"><label class="form-label">% Água</label><input type="number" step="0.1" class="form-input" id="w-water" placeholder="48.9"></div>
       </div>
       <div class="form-row" style="margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label class="form-label">BMR (kcal)</label><input type="number" class="form-input" id="w-bmr" placeholder="1372"></div>
+        <div class="form-group" style="margin:0"><label class="form-label">IMC</label><input type="number" step="0.1" class="form-input" id="w-bmi" placeholder="28.6"></div>
         <div class="form-group" style="margin:0"><label class="form-label">Gordura visceral</label><input type="number" step="0.1" class="form-input" id="w-visceral" placeholder="12"></div>
       </div>
       <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0"><label class="form-label">BMR (kcal)</label><input type="number" class="form-input" id="w-bmr" placeholder="1372"></div>
         <div class="form-group" style="margin:0"><label class="form-label">Idade corporal</label><input type="number" class="form-input" id="w-bodyage" placeholder="33"></div>
       </div>
       <button class="btn btn-dark" onclick="addWeight()">Guardar pesagem</button>
@@ -1048,7 +1045,6 @@ async function addWeight(){
   const row={user_id:currentUser,date,weight:w,
     fat_pct:parseFloat(document.getElementById('w-fat').value)||0,
     muscle_pct:parseFloat(document.getElementById('w-muscle-pct').value)||0,
-    muscle:parseFloat(document.getElementById('w-muscle').value)||0,
     bmi:parseFloat(document.getElementById('w-bmi').value)||0,
     water:parseFloat(document.getElementById('w-water').value)||0,
     bmr:parseFloat(document.getElementById('w-bmr').value)||0,
@@ -1058,7 +1054,7 @@ async function addWeight(){
   if(error){setSyncStatus('error');showToast('❌ Erro ao guardar pesagem');return;}
   cache[currentUser].weights.push(data);
   cache[currentUser].weights.sort((a,b)=>a.date.localeCompare(b.date));
-  ['w-date','w-weight','w-fat','w-muscle-pct','w-muscle','w-bmi','w-water','w-bmr','w-visceral','w-bodyage'].forEach(i=>document.getElementById(i).value='');
+  ['w-date','w-weight','w-fat','w-muscle-pct','w-bmi','w-water','w-bmr','w-visceral','w-bodyage'].forEach(i=>document.getElementById(i).value='');
   setSyncStatus('ok');showToast(`⚖️ Pesagem de ${formatDate(date)} guardada!`);renderAll();
 }
 
@@ -1469,7 +1465,6 @@ function renderPeso(){
     const chips=[
       w.fat_pct?{v:round1(w.fat_pct)+'%',l:'Gordura',t:wTrend(w.fat_pct,p?.fat_pct,'down')}:null,
       w.muscle_pct?{v:round1(w.muscle_pct)+'%',l:'Músculo',t:wTrend(w.muscle_pct,p?.muscle_pct,'up')}:null,
-      w.muscle&&!w.muscle_pct?{v:round1(w.muscle)+'kg',l:'Músculo',t:wTrend(w.muscle,p?.muscle,'up')}:null,
       w.visceral?{v:round1(w.visceral),l:'Visceral',t:wTrend(w.visceral,p?.visceral,'down')}:null,
       w.water?{v:round1(w.water)+'%',l:'Água',t:wTrend(w.water,p?.water,'up')}:null,
       w.bmi?{v:round1(w.bmi),l:'IMC',t:wTrend(w.bmi,p?.bmi,'down')}:null,
@@ -1487,11 +1482,10 @@ function renderPeso(){
       ${metricsHtml}
     </div>`;
   }).join('');
-  const hasComposition=latest.fat_pct||latest.muscle_pct||latest.muscle||latest.bmi||latest.water||latest.bmr||latest.visceral||latest.body_age;
+  const hasComposition=latest.fat_pct||latest.muscle_pct||latest.bmi||latest.water||latest.bmr||latest.visceral||latest.body_age;
   const metricsHtml=hasComposition?`<div class="card"><div class="card-title">📊 Composição corporal</div><div class="metrics-grid">
     ${latest.muscle_pct?`<div class="metric-item"><div class="metric-name">% Músculo</div><div class="metric-val">${round1(latest.muscle_pct)}<span>%</span></div></div>`:''}
     ${latest.fat_pct?`<div class="metric-item"><div class="metric-name">% Gordura</div><div class="metric-val">${round1(latest.fat_pct)}<span>%</span></div></div>`:''}
-    ${latest.muscle?`<div class="metric-item"><div class="metric-name">Músculo (kg)</div><div class="metric-val">${round1(latest.muscle)}<span>kg</span></div></div>`:''}
     ${latest.water?`<div class="metric-item"><div class="metric-name">% Água</div><div class="metric-val">${round1(latest.water)}<span>%</span></div></div>`:''}
     ${latest.bmi?`<div class="metric-item"><div class="metric-name">IMC</div><div class="metric-val">${round1(latest.bmi)}</div></div>`:''}
     ${latest.bmr?`<div class="metric-item"><div class="metric-name">BMR</div><div class="metric-val">${Math.round(latest.bmr)}<span>kcal</span></div></div>`:''}
@@ -1625,7 +1619,7 @@ function toggleFatLine(){
 
 const BODY_METRICS=[
   {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down', goalKey:'goalFat'},
-  {key:'muscle',   label:'Músculo',    unit:'kg', color:'#5A9E6F', good:'up',   goalKey:'goalMuscle'},
+  {key:'muscle_pct',label:'% Músculo',  unit:'%',  color:'#5A9E6F', good:'up',   goalKey:null},
   {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down', goalKey:'goalVisceral'},
   {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up',   goalKey:'goalWater'},
   {key:'bmi',      label:'IMC',        unit:'',   color:'#9B7BC2', good:'down', goalKey:'goalBmi'},
@@ -1961,21 +1955,18 @@ function openEditWeight(id){
     <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="ew-date" value="${w.date}"></div>
     <div class="form-row" style="margin-bottom:12px">
       <div class="form-group" style="margin:0"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" class="form-input" id="ew-weight" value="${w.weight||''}"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">% Gordura</label><input type="number" step="0.1" class="form-input" id="ew-fat" value="${w.fat_pct||''}"></div>
-    </div>
-    <div class="form-row" style="margin-bottom:12px">
       <div class="form-group" style="margin:0"><label class="form-label">% Músculo</label><input type="number" step="0.1" class="form-input" id="ew-muscle-pct" value="${w.muscle_pct||''}"></div>
-      <div class="form-group" style="margin:0"><label class="form-label">Músculo (kg)</label><input type="number" step="0.1" class="form-input" id="ew-muscle" value="${w.muscle||''}"></div>
     </div>
     <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">IMC</label><input type="number" step="0.1" class="form-input" id="ew-bmi" value="${w.bmi||''}"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">% Gordura</label><input type="number" step="0.1" class="form-input" id="ew-fat" value="${w.fat_pct||''}"></div>
       <div class="form-group" style="margin:0"><label class="form-label">% Água</label><input type="number" step="0.1" class="form-input" id="ew-water" value="${w.water||''}"></div>
     </div>
     <div class="form-row" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label">BMR (kcal)</label><input type="number" class="form-input" id="ew-bmr" value="${w.bmr||''}"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">IMC</label><input type="number" step="0.1" class="form-input" id="ew-bmi" value="${w.bmi||''}"></div>
       <div class="form-group" style="margin:0"><label class="form-label">Gordura visceral</label><input type="number" step="0.1" class="form-input" id="ew-visceral" value="${w.visceral||''}"></div>
     </div>
     <div class="form-row" style="margin-bottom:12px">
+      <div class="form-group" style="margin:0"><label class="form-label">BMR (kcal)</label><input type="number" class="form-input" id="ew-bmr" value="${w.bmr||''}"></div>
       <div class="form-group" style="margin:0"><label class="form-label">Idade corporal</label><input type="number" class="form-input" id="ew-bodyage" value="${w.body_age||''}"></div>
     </div>
     <button class="btn btn-dark" onclick="saveWeightEdit()">Guardar alterações</button>`;
@@ -1988,7 +1979,6 @@ async function saveWeightEdit(){
   const row={date:document.getElementById('ew-date').value,weight:wv,
     fat_pct:parseFloat(document.getElementById('ew-fat').value)||0,
     muscle_pct:parseFloat(document.getElementById('ew-muscle-pct').value)||0,
-    muscle:parseFloat(document.getElementById('ew-muscle').value)||0,
     bmi:parseFloat(document.getElementById('ew-bmi').value)||0,
     water:parseFloat(document.getElementById('ew-water').value)||0,
     bmr:parseFloat(document.getElementById('ew-bmr').value)||0,
