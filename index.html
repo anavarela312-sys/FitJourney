@@ -572,7 +572,6 @@ let TARGETS={
   ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25,goalMusclePct:62,goalMuscle:46,goalVisceral:7,goalWater:53,goalBmi:23},
   joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15,goalMusclePct:70,goalMuscle:52,goalVisceral:7,goalWater:55,goalBmi:24}
 };
-(function(){try{const s=localStorage.getItem('fj_macros');if(s){const m=JSON.parse(s);['ana','joao'].forEach(u=>{if(m[u])Object.assign(TARGETS[u],m[u]);});}}catch(_){}})();
 
 let currentUser='ana';
 let cache={ana:{meals:{},weights:[],streak:0,lastLog:null},joao:{meals:{},weights:[],streak:0,lastLog:null}};
@@ -670,7 +669,7 @@ function openConfig(){
   document.getElementById('config-modal').classList.add('show');
 }
 function closeConfig(){document.getElementById('config-modal').classList.remove('show');}
-function saveConfig(){
+async function saveConfig(){
   const v=(id)=>parseInt(document.getElementById(id).value)||0;
   ['ana','joao'].forEach(u=>{
     TARGETS[u].kcal=v(`cfg-${u}-kcal`);
@@ -678,10 +677,12 @@ function saveConfig(){
     TARGETS[u].fat=v(`cfg-${u}-fat`);
     TARGETS[u].carbs=v(`cfg-${u}-carbs`);
   });
-  try{localStorage.setItem('fj_macros',JSON.stringify({
-    ana:{kcal:TARGETS.ana.kcal,prot:TARGETS.ana.prot,fat:TARGETS.ana.fat,carbs:TARGETS.ana.carbs},
-    joao:{kcal:TARGETS.joao.kcal,prot:TARGETS.joao.prot,fat:TARGETS.joao.fat,carbs:TARGETS.joao.carbs}
-  }));}catch(_){}
+  for(const u of['ana','joao']){
+    await supa.from('user_settings').upsert(
+      {user_id:u,kcal:TARGETS[u].kcal,prot:TARGETS[u].prot,fat:TARGETS[u].fat,carbs:TARGETS[u].carbs},
+      {onConflict:'user_id'}
+    );
+  }
   closeConfig();renderAll();showToast('✅ Configurações guardadas!');
 }
 document.getElementById('config-modal').addEventListener('click',function(e){if(e.target===this)closeConfig();});
@@ -721,9 +722,22 @@ async function loadAll(){
     }
     await loadFoods();
     await loadWorkouts();
+    await loadSettings();
     setSyncStatus('ok');renderAll();
   }catch(e){
     setSyncStatus('error');showToast('⚠️ Erro ao carregar dados');renderAll();
+  }
+}
+
+async function loadSettings(){
+  for(const u of['ana','joao']){
+    const{data}=await supa.from('user_settings').select('*').eq('user_id',u).single();
+    if(data){
+      if(data.kcal)TARGETS[u].kcal=data.kcal;
+      if(data.prot)TARGETS[u].prot=data.prot;
+      if(data.fat)TARGETS[u].fat=data.fat;
+      if(data.carbs)TARGETS[u].carbs=data.carbs;
+    }
   }
 }
 
