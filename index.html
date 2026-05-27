@@ -569,8 +569,8 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 let TARGETS={
-  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25,goalMuscle:46,goalVisceral:7,goalWater:53,goalBmi:23},
-  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15,goalMuscle:52,goalVisceral:7,goalWater:55,goalBmi:24}
+  ana:{kcal:1800,prot:142,fat:55,carbs:200,startWeight:75.9,goalWeight:66,goalFat:25,goalMusclePct:62,goalMuscle:46,goalVisceral:7,goalWater:53,goalBmi:23},
+  joao:{kcal:2220,prot:167,fat:88,carbs:187,startWeight:100,goalWeight:90,goalFat:15,goalMusclePct:70,goalMuscle:52,goalVisceral:7,goalWater:55,goalBmi:24}
 };
 (function(){try{const s=localStorage.getItem('fj_macros');if(s){const m=JSON.parse(s);['ana','joao'].forEach(u=>{if(m[u])Object.assign(TARGETS[u],m[u]);});}}catch(_){}})();
 
@@ -1619,7 +1619,7 @@ function toggleFatLine(){
 
 const BODY_METRICS=[
   {key:'fat_pct',  label:'% Gordura',  unit:'%',  color:'#E8A53A', good:'down', goalKey:'goalFat'},
-  {key:'muscle_pct',label:'% Músculo',  unit:'%',  color:'#5A9E6F', good:'up',   goalKey:null},
+  {key:'muscle_pct',label:'% Músculo',  unit:'%',  color:'#5A9E6F', good:'up',   goalKey:'goalMusclePct'},
   {key:'visceral', label:'G. visceral',unit:'',   color:'#C45C5C', good:'down', goalKey:'goalVisceral'},
   {key:'water',    label:'% Água',     unit:'%',  color:'#7BA7C2', good:'up',   goalKey:'goalWater'},
   {key:'bmi',      label:'IMC',        unit:'',   color:'#9B7BC2', good:'down', goalKey:'goalBmi'},
